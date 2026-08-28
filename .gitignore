@@ -1,5 +1,13 @@
 node_modules/
 dist/
 out/
+coverage/
+release/
+.vite/
+.env
+.env.*
+!.env.example
 *.log
+.DS_Store
+Thumbs.db
 spikes/electron-webcontents/.runtime/
