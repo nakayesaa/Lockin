@@ -71,7 +71,7 @@ flowchart LR
 
 ## Phase 0 — Product and Architecture Baseline
 
-**Status:** `DONE`  
+**Status:** `DONE`
 **Purpose:** Prevent the scope and stack from changing during implementation without an explicit decision.
 
 ### Required decisions
@@ -176,7 +176,7 @@ If a critical site fails to render, Phase 1 remains `BLOCKED`. Resolve the issue
 
 ## Phase 2 — Production Project Foundation
 
-**Initial status:** `NOT STARTED`  
+**Status:** `DONE`
 **Depends on:** Phase 1 `DONE`  
 **Purpose:** Create the secure, maintainable project that will become the actual product.
 
@@ -230,6 +230,8 @@ If a critical site fails to render, Phase 1 remains `BLOCKED`. Resolve the issue
 ### Exit gate
 
 Phase 2 passes when a clean checkout installs, typechecks, tests, builds, and opens successfully on Windows with no direct Node.js access from the React renderer.
+
+**Gate result:** `PASS` — see [`docs/phase-2-handoff.md`](./docs/phase-2-handoff.md).
 
 ---
 
