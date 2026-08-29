@@ -235,8 +235,8 @@ This limitation must be stated clearly in onboarding. Strong OS enforcement can 
 LockIn must never create a dangerous lockout. Include a deliberate emergency exit:
 
 1. Press a non-obvious shortcut such as `Ctrl + Shift + L`.
-2. Hold the exit control for ten seconds.
-3. Type `END MY SESSION`.
+2. Reveal a focused emergency-exit confirmation sheet.
+3. Press and hold the exit control continuously for three seconds; releasing cancels it.
 4. Mark the session locally as abandoned and leave focus mode.
 
 If the app crashes or Windows restarts:
@@ -556,4 +556,3 @@ Do not add a backend, database layer, service layer, or complex state framework 
 - [Electron `WebContentsView`](https://www.electronjs.org/docs/latest/api/web-contents-view)
 - [Electron security recommendations](https://www.electronjs.org/docs/latest/tutorial/security)
 - [Microsoft overview of Windows application frameworks](https://learn.microsoft.com/en-us/windows/apps/)
-

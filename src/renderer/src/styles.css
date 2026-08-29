@@ -1033,6 +1033,59 @@ input:focus-visible {
   cursor: default;
   opacity: 0.35;
 }
+.exit-assurance {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 12px;
+  border: 1px solid rgba(26, 63, 99, 0.08);
+  border-radius: 15px;
+  background: rgba(232, 239, 246, 0.58);
+}
+.exit-assurance > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+  color: #7a4a13;
+  background: rgba(255, 193, 92, 0.22);
+  font-size: 12px;
+  font-weight: 760;
+}
+.exit-assurance p {
+  margin: 0;
+  color: #647383;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.hold-exit-button {
+  position: relative;
+  min-width: 132px;
+  min-height: 42px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  background: #182333;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  isolation: isolate;
+}
+.hold-exit-button__fill {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: var(--hold-progress);
+  background: linear-gradient(90deg, #d92d20, #ee574d);
+  transition: width 60ms linear;
+}
+.hold-exit-button > span:last-child {
+  position: relative;
+}
 .completion-time {
   margin: 20px 0 8px;
   color: #0878e8;
@@ -1070,13 +1123,6 @@ input:focus-visible {
 }
 .exit-dialog .eyebrow {
   text-align: left;
-}
-.exit-dialog label {
-  margin-top: 22px;
-}
-.exit-dialog input {
-  height: 44px;
-  margin-top: 4px;
 }
 .exit-dialog .dialog-actions {
   justify-content: flex-end;

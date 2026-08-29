@@ -534,8 +534,7 @@ Security failures block all later work.
 ### Step 8.3 — Implement emergency exit
 
 - Reveal it only through the approved shortcut.
-- Require a ten-second hold.
-- Require the exact confirmation phrase.
+- Require a single uninterrupted three-second hold; releasing early cancels the exit.
 - Mark the session `abandoned` before leaving focus mode.
 - Ensure it remains keyboard and screen-reader accessible.
 

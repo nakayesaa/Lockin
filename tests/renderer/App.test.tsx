@@ -54,4 +54,18 @@ describe('Phase 3 product flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview blocked navigation' }));
     expect(screen.getByRole('heading', { name: 'This destination can wait.' })).toBeVisible();
   });
+
+  it('uses a deliberate hold interaction for emergency exit', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Emergency exit' }));
+
+    expect(screen.getByRole('heading', { name: 'End this focus session?' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Press and hold for three seconds to end session' }),
+    ).toBeVisible();
+    expect(screen.queryByPlaceholderText('END MY SESSION')).not.toBeInTheDocument();
+  });
 });

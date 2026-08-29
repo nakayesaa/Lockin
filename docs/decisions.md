@@ -21,3 +21,10 @@ LockIn will keep the embedded `WebContentsView` architecture because the product
 The embedded profile does not import Firefox cookies or Firefox Sync data. Some identity providers, notably Google OAuth, may refuse embedded user-agents by policy. LockIn will not spoof its user-agent or copy encrypted browser cookies to bypass that restriction. Direct login, magic-link, and compatible authentication methods may be used; incompatible OAuth-only websites will be documented honestly.
 
 Phase 1 proves that authentication pages render and that session state persists across view and application restarts. Provider-specific credential flows are deferred to Phase 7, where navigation and authentication supporting-domain rules are implemented. This revises the original Phase 1 credential-dependent gate without changing the approved architecture.
+
+## ADR-003 — Deliberate emergency-exit interaction
+
+- Date: 2026-08-29
+- Status: Accepted
+
+The emergency exit uses one uninterrupted three-second press-and-hold action instead of a typed confirmation phrase. Releasing early cancels the action immediately. This remains deliberate enough to prevent accidental exits while avoiding an unnecessarily punitive interaction.

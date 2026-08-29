@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { AppInfo } from '../../shared/contracts';
 import wallpaperUrl from './assets/polo-wallpaper.png';
@@ -181,8 +181,32 @@ function Workspace({
 }
 
 function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () => void }) {
-  const [confirmation, setConfirmation] = useState('');
-  const confirmed = confirmation === 'END MY SESSION';
+  const [holdProgress, setHoldProgress] = useState(0);
+  const holdTimer = useRef<number | null>(null);
+
+  const stopHolding = useCallback(() => {
+    if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
+    holdTimer.current = null;
+    setHoldProgress(0);
+  }, []);
+
+  const startHolding = useCallback(() => {
+    if (holdTimer.current !== null) return;
+    holdTimer.current = window.setInterval(() => {
+      setHoldProgress((current) => {
+        const next = Math.min(100, current + 2);
+        if (next === 100) {
+          if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
+          holdTimer.current = null;
+          window.queueMicrotask(onExit);
+        }
+        return next;
+      });
+    }, 60);
+  }, [onExit]);
+
+  useEffect(() => stopHolding, [stopHolding]);
+
   return (
     <div className="modal-backdrop">
       <section className="exit-dialog" role="dialog" aria-modal="true" aria-labelledby="exit-title">
@@ -191,22 +215,33 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
         </div>
         <p className="eyebrow">Emergency exit</p>
         <h2 id="exit-title">End this focus session?</h2>
-        <p>Your progress will be saved, but this session will be marked as abandoned.</p>
-        <label>
-          <span>Type END MY SESSION to continue</span>
-          <input
-            autoFocus
-            value={confirmation}
-            placeholder="END MY SESSION"
-            onChange={(event) => setConfirmation(event.target.value)}
-          />
-        </label>
+        <p>Your setup stays safe. This focus session will simply end early.</p>
+        <div className="exit-assurance">
+          <span aria-hidden="true">3s</span>
+          <p>A deliberate hold prevents accidental exits. Release anytime to keep focusing.</p>
+        </div>
         <div className="dialog-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>
-            Stay focused
+            Cancel
           </button>
-          <button type="button" className="danger-button" disabled={!confirmed} onClick={onExit}>
-            End session
+          <button
+            type="button"
+            className="hold-exit-button"
+            style={{ '--hold-progress': `${holdProgress}%` } as CSSProperties}
+            aria-label="Press and hold for three seconds to end session"
+            onPointerDown={startHolding}
+            onPointerUp={stopHolding}
+            onPointerCancel={stopHolding}
+            onPointerLeave={stopHolding}
+            onKeyDown={(event) => {
+              if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) startHolding();
+            }}
+            onKeyUp={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') stopHolding();
+            }}
+          >
+            <span className="hold-exit-button__fill" aria-hidden="true" />
+            <span>{holdProgress > 0 ? 'Keep holding…' : 'Hold to end'}</span>
           </button>
         </div>
       </section>
