@@ -52,6 +52,8 @@ describe('Phase 3 product flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open ChatGPT' }));
 
     expect(screen.getByRole('heading', { name: 'ChatGPT is ready.' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
+    expect(screen.queryByText('Spaces')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Preview blocked navigation' }));
     expect(screen.getByRole('heading', { name: 'This destination can wait.' })).toBeVisible();
   });

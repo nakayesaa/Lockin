@@ -8,7 +8,6 @@ import {
   CheckIcon,
   CloseIcon,
   MinusIcon,
-  MoreIcon,
   PlayIcon,
   PlusIcon,
   ShieldIcon,
@@ -143,45 +142,30 @@ function Workspace({
 }) {
   return (
     <section className="workspace" aria-label={`${space.name} website preview`}>
-      <header className="workspace-bar">
-        <button type="button" className="workspace-back" onClick={onBack}>
+      <button type="button" className="immersive-back" onClick={onBack}>
+        <span className="immersive-back__icon">
           <ArrowLeftIcon />
-          <span>Spaces</span>
-        </button>
-        <div className="workspace-identity">
-          <span className={`mini-space-mark mini-space-mark--${space.tone}`}>
+        </span>
+        <span className="immersive-back__label">Back</span>
+      </button>
+      <span className="immersive-timer" aria-label={`${remaining} remaining`}>
+        {remaining}
+      </span>
+      <div className={`website-surface website-surface--${space.tone}`}>
+        <div className="website-surface__ambient" aria-hidden="true" />
+        <div className="website-content">
+          <span className={`preview-emblem preview-emblem--${space.tone}`}>
             {space.mark ?? '◌'}
           </span>
-          <span>{space.name}</span>
-          <ShieldIcon />
-        </div>
-        <span className="workspace-timer">{remaining}</span>
-      </header>
-      <div className="browser-canvas">
-        <div className="browser-window">
-          <div className="browser-toolbar">
-            <div className="traffic-lights" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="address-pill">
-              <ShieldIcon />
-              <span>{space.url.replace('https://', '')}</span>
-            </div>
-            <MoreIcon />
-          </div>
-          <div className="browser-placeholder">
-            <span className={`preview-emblem preview-emblem--${space.tone}`}>
-              {space.mark ?? '◌'}
-            </span>
-            <p className="eyebrow">Controlled workspace</p>
-            <h2>{space.name} is ready.</h2>
-            <p>This is the static website shell. The live secure browser arrives in Phase 6.</p>
-            <button type="button" onClick={onBlocked}>
-              Preview blocked navigation
-            </button>
-          </div>
+          <p className="eyebrow">Immersive website preview</p>
+          <h2>{space.name} is ready.</h2>
+          <p>
+            In the connected app, the real website fills this entire surface—without browser or
+            LockIn chrome.
+          </p>
+          <button type="button" onClick={onBlocked}>
+            Preview blocked navigation
+          </button>
         </div>
       </div>
     </section>
@@ -353,7 +337,9 @@ export function App() {
       className={`app-shell ${isStarting ? 'is-starting' : ''}`}
       style={{ '--wallpaper': `url(${wallpaperUrl})` } as CSSProperties}
     >
-      <SystemChrome remaining={focusActive && screen === 'launcher' ? remaining : undefined} />
+      {screen !== 'workspace' ? (
+        <SystemChrome remaining={focusActive && screen === 'launcher' ? remaining : undefined} />
+      ) : null}
 
       {screen === 'setup' || isStarting ? (
         <section className={`setup-screen ${isStarting ? 'setup-screen--departing' : ''}`}>
