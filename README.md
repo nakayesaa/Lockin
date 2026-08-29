@@ -21,7 +21,7 @@ Phase 2 provides the production foundation:
 - ESLint and Prettier; and
 - a Windows GitHub Actions quality gate.
 
-The current screen is intentionally minimal. The complete visual system, launcher, wallpaper treatment, and static product flow belong to Phase 3.
+The Phase 3 visual implementation is currently in review. It includes the wallpaper-led setup screen, dynamic spaces dock, crystal-logo treatment, focus launcher, static website shell, blocked state, emergency exit, and completion flow.
 
 ## Requirements
 
@@ -39,6 +39,12 @@ npm ci
 npm run dev
 ```
 
+For lightweight UI-only work with browser hot reload and mocked application data:
+
+```bash
+npm run dev:ui
+```
+
 Electron 44 downloads its platform binary during the root `postinstall` step. npm's dependency-script allowlist is committed in `package.json`; no global script-policy bypass is needed.
 
 ## Quality commands
@@ -46,6 +52,7 @@ Electron 44 downloads its platform binary during the root `postinstall` step. np
 | Command                | Purpose                                              |
 | ---------------------- | ---------------------------------------------------- |
 | `npm run dev`          | Run Electron with renderer hot reload                |
+| `npm run dev:ui`       | Run the mocked UI in a browser without Electron      |
 | `npm run typecheck`    | Check main, preload, shared, and renderer TypeScript |
 | `npm run lint`         | Run ESLint across production source and tests        |
 | `npm run format:check` | Verify Prettier formatting                           |

@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
 import type { LockInApi } from '../../src/shared/contracts';
 
-describe('App shell', () => {
+describe('Phase 3 product flow', () => {
+  afterEach(cleanup);
+
   beforeEach(() => {
     const api: LockInApi = {
       getAppInfo: vi.fn().mockResolvedValue({
@@ -21,10 +23,35 @@ describe('App shell', () => {
     });
   });
 
-  it('renders the production shell and reads validated app information', async () => {
+  it('renders the setup experience and changes duration', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Production foundation ready.' })).toBeVisible();
-    expect(await screen.findByText('LockIn 0.1.0')).toBeVisible();
+    expect(screen.getByRole('heading', { name: /one thing at a time/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Start focus' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: '45' }));
+    expect(screen.getByRole('button', { name: '45' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('adds a crystal space to the dynamic dock', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add an allowed website' }));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Figma' } });
+    fireEvent.change(screen.getByLabelText('Website'), { target: { value: 'figma.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add to focus' }));
+
+    expect(screen.getByRole('button', { name: 'Open Figma' })).toBeVisible();
+  });
+
+  it('walks from launcher to workspace and blocked navigation', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open ChatGPT' }));
+
+    expect(screen.getByRole('heading', { name: 'ChatGPT is ready.' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Preview blocked navigation' }));
+    expect(screen.getByRole('heading', { name: 'This destination can wait.' })).toBeVisible();
   });
 });

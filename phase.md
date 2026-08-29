@@ -237,7 +237,7 @@ Phase 2 passes when a clean checkout installs, typechecks, tests, builds, and op
 
 ## Phase 3 — Design System and Static Product Flow
 
-**Initial status:** `NOT STARTED`  
+**Status:** `IN PROGRESS`
 **Depends on:** Phase 2 `DONE`  
 **Purpose:** Approve the complete visual and interaction direction before connecting business logic.
 
