@@ -75,6 +75,20 @@ describe('Phase 3 product flow', () => {
     expect(screen.queryByPlaceholderText('END MY SESSION')).not.toBeInTheDocument();
   });
 
+  it('keeps the session panel minimal while the countdown ticks', () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    act(() => vi.advanceTimersByTime(1_000));
+    fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
+
+    const controls = screen.getByRole('dialog', { name: 'Focus session controls' });
+    expect(controls).toHaveTextContent('59:59remaining');
+    expect(controls).not.toHaveTextContent('Focus in progress');
+    expect(controls).not.toHaveTextContent('Everything else can wait');
+  });
+
   it('shows the polished completion summary after a deliberate exit', () => {
     vi.useFakeTimers();
     render(<App />);

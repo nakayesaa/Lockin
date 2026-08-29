@@ -25,8 +25,10 @@ const initialSpaces: Space[] = [
 ];
 const emptyDraft: DraftSpace = { name: '', url: '', logoUrl: undefined };
 
-function formatClock(totalMinutes: number) {
-  return `${String(totalMinutes).padStart(2, '0')}:00`;
+function formatClock(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function SystemChrome({ remaining }: { remaining: string | undefined }) {
@@ -251,6 +253,7 @@ export function App() {
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
   const [emergencyOpen, setEmergencyOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState(duration * 60);
   const startTimer = useRef<number | null>(null);
   const [, setAppInfo] = useState<AppInfo | null>(null);
 
@@ -275,8 +278,18 @@ export function App() {
     [],
   );
 
-  const remaining = formatClock(duration);
   const focusActive = screen !== 'setup' && screen !== 'complete';
+  const remaining = formatClock(remainingSeconds);
+  const remainingPercent = (remainingSeconds / (duration * 60)) * 100;
+
+  useEffect(() => {
+    if (!focusActive) return;
+    const timer = window.setInterval(
+      () => setRemainingSeconds((current) => Math.max(0, current - 1)),
+      1_000,
+    );
+    return () => window.clearInterval(timer);
+  }, [focusActive]);
 
   const openSpace = (space: Space) => {
     if (screen === 'setup') {
@@ -323,6 +336,7 @@ export function App() {
     setEditorOpen(false);
     setEditingSpaceId(null);
     setSessionMenuOpen(false);
+    setRemainingSeconds(duration * 60);
     setIsStarting(true);
     setScreen('launcher');
     startTimer.current = window.setTimeout(() => {
@@ -379,32 +393,12 @@ export function App() {
             </button>
             {sessionMenuOpen ? (
               <div className="focus-panel" role="dialog" aria-label="Focus session controls">
-                <div className="focus-panel__header">
-                  <span className="focus-panel__glyph" aria-hidden="true">
-                    <span />
-                  </span>
-                  <div>
-                    <p className="eyebrow">Focus in progress</p>
-                    <strong>Everything else can wait.</strong>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Close session controls"
-                    onClick={() => setSessionMenuOpen(false)}
-                  >
-                    <CloseIcon />
-                  </button>
-                </div>
                 <div className="focus-panel__time">
                   <strong>{remaining}</strong>
                   <span>remaining</span>
                 </div>
                 <div className="focus-panel__progress" aria-hidden="true">
-                  <span />
-                </div>
-                <div className="focus-panel__meta">
-                  <span>{spaces.length} spaces available</span>
-                  <span>{duration} min session</span>
+                  <span style={{ width: `${remainingPercent}%` }} />
                 </div>
                 <button
                   className="focus-panel__exit"
@@ -479,7 +473,10 @@ export function App() {
               <button
                 type="button"
                 className="completion-button completion-button--primary"
-                onClick={() => setScreen('launcher')}
+                onClick={() => {
+                  setRemainingSeconds(duration * 60);
+                  setScreen('launcher');
+                }}
               >
                 Start another
               </button>
