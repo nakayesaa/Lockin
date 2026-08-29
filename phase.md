@@ -237,7 +237,7 @@ Phase 2 passes when a clean checkout installs, typechecks, tests, builds, and op
 
 ## Phase 3 — Design System and Static Product Flow
 
-**Status:** `IN PROGRESS`
+**Status:** `DONE`
 **Depends on:** Phase 2 `DONE`  
 **Purpose:** Approve the complete visual and interaction direction before connecting business logic.
 
@@ -293,11 +293,13 @@ Phase 3 passes when the full mocked journey is visually approved, keyboard-navig
 
 No persistence, timer, or browser integration is required in this phase.
 
+**Gate result:** `PASS` — see [`docs/phase-3-handoff.md`](./docs/phase-3-handoff.md).
+
 ---
 
 ## Phase 4 — Local Data, Website Management, and Presets
 
-**Initial status:** `NOT STARTED`  
+**Status:** `NOT STARTED`
 **Depends on:** Phase 3 `DONE`  
 **Purpose:** Replace sample data with safe local configuration.
 

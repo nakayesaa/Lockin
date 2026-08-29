@@ -6,22 +6,17 @@ The product and delivery plan live in [`summary.md`](./summary.md) and [`phase.m
 
 ## Current status
 
-Phase 2 provides the production foundation:
+Phase 3 is complete and visually approved. The current product prototype includes:
 
-- Electron main process;
-- sandboxed React renderer;
-- narrow preload bridge;
-- typed and runtime-validated IPC;
-- strict TypeScript;
-- Vite and electron-vite builds;
-- Tailwind CSS integration;
-- structured main-process logging;
-- renderer error boundary;
-- Vitest and React Testing Library;
-- ESLint and Prettier; and
-- a Windows GitHub Actions quality gate.
+- the wallpaper-led session setup screen;
+- a dynamic spaces dock with crystal and custom-image treatments;
+- the animated transition into focus mode;
+- launcher, immersive website, blocked-navigation, and completion states;
+- a minimal active-timer panel and ten-second hold-to-end control;
+- a compact floating album-player prototype; and
+- a browser-only design mode with hot reload and mocked data.
 
-The Phase 3 visual implementation is currently in review. It includes the wallpaper-led setup screen, dynamic spaces dock, crystal-logo treatment, focus launcher, static website shell, blocked state, emergency exit, and completion flow.
+Phase 4 is now unlocked. It will replace mocked websites and presets with validated local data that survives an application restart. The authoritative timer and real embedded website view follow in Phases 5 and 6.
 
 ## Requirements
 
