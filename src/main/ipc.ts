@@ -1,31 +1,54 @@
-import { app, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import {
   IPC_CHANNELS,
-  appInfoSchema,
-  pingRequestSchema,
-  pingResponseSchema,
-  type AppInfo,
-  type PingResponse,
+  entityRequestSchema,
+  presetCreateRequestSchema,
+  presetUpdateRequestSchema,
+  spaceCreateRequestSchema,
+  spaceReorderRequestSchema,
+  spaceUpdateRequestSchema,
+  workspaceResultSchema,
 } from '../shared/contracts';
+import type { WorkspaceStore } from './workspace-store';
 
-export function registerIpcHandlers(): void {
-  ipcMain.removeHandler(IPC_CHANNELS.appInfo);
-  ipcMain.removeHandler(IPC_CHANNELS.ping);
+export function registerIpcHandlers(store: WorkspaceStore): void {
+  Object.values(IPC_CHANNELS).forEach((channel) => ipcMain.removeHandler(channel));
 
-  ipcMain.handle(IPC_CHANNELS.appInfo, (): AppInfo => {
-    return appInfoSchema.parse({
-      name: app.getName(),
-      version: app.getVersion(),
-      platform: process.platform,
-      isPackaged: app.isPackaged,
-    });
+  ipcMain.handle(IPC_CHANNELS.workspaceGet, async () =>
+    workspaceResultSchema.parse(await store.getState()),
+  );
+  ipcMain.handle(IPC_CHANNELS.spaceCreate, async (_event, input: unknown) =>
+    workspaceResultSchema.parse(await store.createSpace(spaceCreateRequestSchema.parse(input))),
+  );
+  ipcMain.handle(IPC_CHANNELS.spaceUpdate, async (_event, input: unknown) => {
+    const request = spaceUpdateRequestSchema.parse(input);
+    return workspaceResultSchema.parse(await store.updateSpace(request.id, request.input));
   });
-
-  ipcMain.handle(IPC_CHANNELS.ping, (_event, input: unknown): PingResponse => {
-    const request = pingRequestSchema.parse(input);
-    return pingResponseSchema.parse({
-      message: request.message,
-      receivedAt: new Date().toISOString(),
-    });
+  ipcMain.handle(IPC_CHANNELS.spaceDelete, async (_event, input: unknown) => {
+    const request = entityRequestSchema.parse(input);
+    return workspaceResultSchema.parse(await store.deleteSpace(request.id));
+  });
+  ipcMain.handle(IPC_CHANNELS.spaceReorder, async (_event, input: unknown) => {
+    const request = spaceReorderRequestSchema.parse(input);
+    return workspaceResultSchema.parse(await store.reorderSpaces(request.spaceIds));
+  });
+  ipcMain.handle(IPC_CHANNELS.presetCreate, async (_event, input: unknown) =>
+    workspaceResultSchema.parse(await store.createPreset(presetCreateRequestSchema.parse(input))),
+  );
+  ipcMain.handle(IPC_CHANNELS.presetUpdate, async (_event, input: unknown) => {
+    const request = presetUpdateRequestSchema.parse(input);
+    return workspaceResultSchema.parse(await store.updatePreset(request.id, request.input));
+  });
+  ipcMain.handle(IPC_CHANNELS.presetDuplicate, async (_event, input: unknown) => {
+    const request = entityRequestSchema.parse(input);
+    return workspaceResultSchema.parse(await store.duplicatePreset(request.id));
+  });
+  ipcMain.handle(IPC_CHANNELS.presetDelete, async (_event, input: unknown) => {
+    const request = entityRequestSchema.parse(input);
+    return workspaceResultSchema.parse(await store.deletePreset(request.id));
+  });
+  ipcMain.handle(IPC_CHANNELS.presetSetActive, async (_event, input: unknown) => {
+    const request = entityRequestSchema.parse(input);
+    return workspaceResultSchema.parse(await store.setActivePreset(request.id));
   });
 }

@@ -1,8 +1,10 @@
 import { app, BrowserWindow } from 'electron';
+import { join } from 'node:path';
 import { getAppPaths } from './app-paths';
 import { registerIpcHandlers } from './ipc';
 import { createLogger } from './logger';
 import { createMainWindow } from './window-controller';
+import { WorkspaceStore } from './workspace-store';
 
 const logger = createLogger('main');
 
@@ -18,7 +20,9 @@ app.whenReady().then(async () => {
     userDataConfigured: Boolean(paths.userData),
   });
 
-  registerIpcHandlers();
+  const workspaceStore = new WorkspaceStore(join(paths.userData, 'workspace.json'));
+  await workspaceStore.initialize();
+  registerIpcHandlers(workspaceStore);
   await createMainWindow();
 
   app.on('activate', () => {

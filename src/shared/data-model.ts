@@ -108,7 +108,7 @@ export const persistedStateSchema = z
 
 export const spaceInputSchema = z
   .object({
-    name: z.string().trim().min(1).max(40),
+    name: z.string().trim().max(40).default(''),
     url: z.string().trim().min(1).max(2_048),
     includeSubdomains: z.boolean().default(false),
     iconDataUrl: iconDataUrlSchema.nullable().default(null),
@@ -195,6 +195,11 @@ export function hostRulesOverlap(first: Space, second: Space): boolean {
     hostnameMatches(first.hostname, second.hostname, first.includeSubdomains) ||
     hostnameMatches(second.hostname, first.hostname, second.includeSubdomains)
   );
+}
+
+export function displayNameFromHostname(hostname: string): string {
+  const firstLabel = hostname.replace(/^www\./, '').split('.')[0] ?? hostname;
+  return firstLabel.charAt(0).toUpperCase() + firstLabel.slice(1);
 }
 
 export function createDefaultState(): PersistedState {

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { AppInfo } from '../../shared/contracts';
 import wallpaperUrl from './assets/polo-wallpaper.png';
 import {
   ArrowLeftIcon,
@@ -256,22 +255,6 @@ export function App() {
   const [isStarting, setIsStarting] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(duration * 60);
   const startTimer = useRef<number | null>(null);
-  const [, setAppInfo] = useState<AppInfo | null>(null);
-
-  useEffect(() => {
-    if (!window.lockIn) return;
-    let active = true;
-    window.lockIn
-      .getAppInfo()
-      .then((info) => {
-        if (active) setAppInfo(info);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, []);
-
   useEffect(
     () => () => {
       if (startTimer.current !== null) window.clearTimeout(startTimer.current);

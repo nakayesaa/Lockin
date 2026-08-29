@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
 import type { LockInApi } from '../../src/shared/contracts';
+import { createDefaultState } from '../../src/shared/data-model';
 
 describe('LockIn product flow', () => {
   afterEach(() => {
@@ -10,14 +11,18 @@ describe('LockIn product flow', () => {
   });
 
   beforeEach(() => {
+    const workspace = { state: createDefaultState(), notice: null };
     const api: LockInApi = {
-      getAppInfo: vi.fn().mockResolvedValue({
-        name: 'LockIn',
-        version: '0.1.0',
-        platform: 'win32',
-        isPackaged: false,
-      }),
-      ping: vi.fn(),
+      getWorkspace: vi.fn().mockResolvedValue(workspace),
+      createSpace: vi.fn().mockResolvedValue(workspace),
+      updateSpace: vi.fn().mockResolvedValue(workspace),
+      deleteSpace: vi.fn().mockResolvedValue(workspace),
+      reorderSpaces: vi.fn().mockResolvedValue(workspace),
+      createPreset: vi.fn().mockResolvedValue(workspace),
+      updatePreset: vi.fn().mockResolvedValue(workspace),
+      duplicatePreset: vi.fn().mockResolvedValue(workspace),
+      deletePreset: vi.fn().mockResolvedValue(workspace),
+      setActivePreset: vi.fn().mockResolvedValue(workspace),
     };
 
     Object.defineProperty(window, 'lockIn', {

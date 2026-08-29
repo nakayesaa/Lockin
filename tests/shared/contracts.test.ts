@@ -1,27 +1,31 @@
 // @vitest-environment node
 
 import { describe, expect, it } from 'vitest';
-import { appInfoSchema, pingRequestSchema } from '../../src/shared/contracts';
+import {
+  entityRequestSchema,
+  presetUpdateRequestSchema,
+  spaceUpdateRequestSchema,
+  workspaceResultSchema,
+} from '../../src/shared/contracts';
+import { createDefaultState } from '../../src/shared/data-model';
 
 describe('shared IPC contracts', () => {
-  it('accepts a valid application-info response', () => {
+  it('accepts a validated workspace response', () => {
     expect(
-      appInfoSchema.parse({
-        name: 'LockIn',
-        version: '0.1.0',
-        platform: 'win32',
-        isPackaged: false,
-      }),
-    ).toEqual({
-      name: 'LockIn',
-      version: '0.1.0',
-      platform: 'win32',
-      isPackaged: false,
-    });
+      workspaceResultSchema.parse({ state: createDefaultState(), notice: null }).state.version,
+    ).toBe(1);
   });
 
-  it('rejects empty and oversized ping payloads', () => {
-    expect(() => pingRequestSchema.parse({ message: '' })).toThrow();
-    expect(() => pingRequestSchema.parse({ message: 'x'.repeat(65) })).toThrow();
+  it('rejects malformed entity and mutation payloads', () => {
+    expect(() => entityRequestSchema.parse({ id: '../workspace.json' })).toThrow();
+    expect(() =>
+      spaceUpdateRequestSchema.parse({ id: 'space', input: { name: 'Unsafe', url: '' } }),
+    ).toThrow();
+    expect(() =>
+      presetUpdateRequestSchema.parse({
+        id: 'preset',
+        input: { name: 'Empty', durationMinutes: 0, spaceIds: [] },
+      }),
+    ).toThrow();
   });
 });

@@ -3,32 +3,42 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createLockInApi } from '../../src/preload/api';
 import { IPC_CHANNELS } from '../../src/shared/contracts';
+import { createDefaultState } from '../../src/shared/data-model';
 
 describe('preload API', () => {
-  it('uses only the declared app-info channel and validates its response', async () => {
-    const invoke = vi.fn().mockResolvedValue({
-      name: 'LockIn',
-      version: '0.1.0',
-      platform: 'win32',
-      isPackaged: false,
-    });
+  it('exposes only declared workspace operations and validates responses', async () => {
+    const response = { state: createDefaultState(), notice: null };
+    const invoke = vi.fn().mockResolvedValue(response);
     const api = createLockInApi(invoke);
 
-    await expect(api.getAppInfo()).resolves.toMatchObject({ name: 'LockIn' });
-    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.appInfo);
+    expect(Object.keys(api)).toEqual([
+      'getWorkspace',
+      'createSpace',
+      'updateSpace',
+      'deleteSpace',
+      'reorderSpaces',
+      'createPreset',
+      'updatePreset',
+      'duplicatePreset',
+      'deletePreset',
+      'setActivePreset',
+    ]);
+    await expect(api.getWorkspace()).resolves.toEqual(response);
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.workspaceGet);
   });
 
-  it('validates ping input before invoking the main process', async () => {
-    const invoke = vi.fn().mockResolvedValue({
-      message: 'ready',
-      receivedAt: '2026-08-29T00:00:00.000Z',
-    });
+  it('validates mutation input before invoking the main process', async () => {
+    const invoke = vi.fn().mockResolvedValue({ state: createDefaultState(), notice: null });
     const api = createLockInApi(invoke);
 
-    await expect(api.ping({ message: '' })).rejects.toThrow();
+    await expect(api.deleteSpace('../unsafe')).rejects.toThrow();
+    await expect(api.createSpace({ name: 'Missing URL', url: '' })).rejects.toThrow();
     expect(invoke).not.toHaveBeenCalled();
 
-    await expect(api.ping({ message: 'ready' })).resolves.toMatchObject({ message: 'ready' });
-    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.ping, { message: 'ready' });
+    await expect(api.createSpace({ name: 'Figma', url: 'figma.com' })).resolves.toBeDefined();
+    expect(invoke).toHaveBeenCalledWith(
+      IPC_CHANNELS.spaceCreate,
+      expect.objectContaining({ name: 'Figma', url: 'figma.com' }),
+    );
   });
 });
