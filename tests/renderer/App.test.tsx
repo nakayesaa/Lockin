@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
 import type { LockInApi } from '../../src/shared/contracts';
 
-describe('Phase 3 product flow', () => {
+describe('LockIn product flow', () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();

@@ -2,11 +2,9 @@
 
 LockIn is a local-first Windows focus environment. Users choose a duration and approved websites, enter a fullscreen launcher, and open one controlled website at a time inside the application.
 
-The product and delivery plan live in [`summary.md`](./summary.md) and [`phase.md`](./phase.md).
+## Product preview
 
-## Current status
-
-Phase 3 is complete and visually approved. The current product prototype includes:
+The current interactive prototype includes:
 
 - the wallpaper-led session setup screen;
 - a dynamic spaces dock with crystal and custom-image treatments;
@@ -16,7 +14,7 @@ Phase 3 is complete and visually approved. The current product prototype include
 - a compact floating album-player prototype; and
 - a browser-only design mode with hot reload and mocked data.
 
-Phase 4 is now unlocked. It will replace mocked websites and presets with validated local data that survives an application restart. The authoritative timer and real embedded website view follow in Phases 5 and 6.
+Spaces, timer updates, embedded website content, and album playback currently use mock data while their application services are being connected.
 
 ## Requirements
 
@@ -54,7 +52,7 @@ Electron 44 downloads its platform binary during the root `postinstall` step. np
 | `npm test`             | Run production unit and renderer tests once          |
 | `npm run test:watch`   | Run tests in watch mode                              |
 | `npm run build`        | Typecheck and compile all Electron processes         |
-| `npm run check`        | Run the complete local Phase 2 quality gate          |
+| `npm run check`        | Run the complete local quality gate                  |
 | `npm start`            | Preview a previously built application               |
 
 Before committing production code, run:
@@ -85,8 +83,6 @@ The production suite currently covers:
 - secure `BrowserWindow` defaults;
 - preload channel isolation and validation; and
 - renderer-to-preload application bootstrap.
-
-The Phase 1 feasibility spike remains isolated under [`spikes/electron-webcontents`](./spikes/electron-webcontents/) and keeps its own dependency and test commands.
 
 ## Git workflow
 
