@@ -48,6 +48,7 @@ describe('Phase 3 product flow', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    expect(screen.getByRole('main')).toHaveClass('is-starting');
     fireEvent.click(screen.getByRole('button', { name: 'Open ChatGPT' }));
 
     expect(screen.getByRole('heading', { name: 'ChatGPT is ready.' })).toBeVisible();
@@ -60,7 +61,7 @@ describe('Phase 3 product flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
     fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Emergency exit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
 
     expect(screen.getByRole('heading', { name: 'End this focus session?' })).toBeVisible();
     expect(

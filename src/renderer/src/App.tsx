@@ -59,10 +59,12 @@ function SetupCard({
   duration,
   onDurationChange,
   onStart,
+  starting,
 }: {
   duration: number;
   onDurationChange: (duration: number) => void;
   onStart: () => void;
+  starting: boolean;
 }) {
   const [referenceTime] = useState(Date.now);
   const endTime = useMemo(() => {
@@ -111,11 +113,17 @@ function SetupCard({
           ))}
         </div>
       </section>
-      <button className="start-button" type="button" aria-label="Start focus" onClick={onStart}>
+      <button
+        className="start-button"
+        type="button"
+        aria-label="Start focus"
+        disabled={starting}
+        onClick={onStart}
+      >
         <span className="start-button__icon">
           <PlayIcon />
         </span>
-        <span>Start focus</span>
+        <span>{starting ? 'Locking in…' : 'Start focus'}</span>
         <span className="start-button__duration">{duration} min</span>
       </button>
     </div>
@@ -259,6 +267,8 @@ export function App() {
   const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
   const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const startTimer = useRef<number | null>(null);
   const [, setAppInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
@@ -274,6 +284,13 @@ export function App() {
       active = false;
     };
   }, []);
+
+  useEffect(
+    () => () => {
+      if (startTimer.current !== null) window.clearTimeout(startTimer.current);
+    },
+    [],
+  );
 
   const remaining = formatClock(duration);
   const focusActive = screen !== 'setup' && screen !== 'complete';
@@ -318,12 +335,28 @@ export function App() {
     setScreen('complete');
   };
 
+  const startSession = () => {
+    if (isStarting) return;
+    setEditorOpen(false);
+    setEditingSpaceId(null);
+    setSessionMenuOpen(false);
+    setIsStarting(true);
+    setScreen('launcher');
+    startTimer.current = window.setTimeout(() => {
+      setIsStarting(false);
+      startTimer.current = null;
+    }, 900);
+  };
+
   return (
-    <main className="app-shell" style={{ '--wallpaper': `url(${wallpaperUrl})` } as CSSProperties}>
+    <main
+      className={`app-shell ${isStarting ? 'is-starting' : ''}`}
+      style={{ '--wallpaper': `url(${wallpaperUrl})` } as CSSProperties}
+    >
       <SystemChrome remaining={focusActive && screen === 'launcher' ? remaining : undefined} />
 
-      {screen === 'setup' ? (
-        <section className="setup-screen">
+      {screen === 'setup' || isStarting ? (
+        <section className={`setup-screen ${isStarting ? 'setup-screen--departing' : ''}`}>
           <div className="hero-copy">
             <p className="brand-kicker">LockIn</p>
             <h1 id="focus-heading" aria-label="One thing at a time.">
@@ -336,11 +369,8 @@ export function App() {
           <SetupCard
             duration={duration}
             onDurationChange={setDuration}
-            onStart={() => {
-              setEditorOpen(false);
-              setEditingSpaceId(null);
-              setScreen('launcher');
-            }}
+            onStart={startSession}
+            starting={isStarting}
           />
         </section>
       ) : null}
@@ -363,13 +393,40 @@ export function App() {
               </span>
             </button>
             {sessionMenuOpen ? (
-              <div className="session-menu">
-                <div>
-                  <p className="eyebrow">Focus in progress</p>
-                  <strong>{remaining} remaining</strong>
+              <div className="focus-panel" role="dialog" aria-label="Focus session controls">
+                <div className="focus-panel__header">
+                  <span className="focus-panel__glyph" aria-hidden="true">
+                    <span />
+                  </span>
+                  <div>
+                    <p className="eyebrow">Focus in progress</p>
+                    <strong>Everything else can wait.</strong>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close session controls"
+                    onClick={() => setSessionMenuOpen(false)}
+                  >
+                    <CloseIcon />
+                  </button>
                 </div>
-                <button type="button" onClick={() => setEmergencyOpen(true)}>
-                  Emergency exit
+                <div className="focus-panel__time">
+                  <strong>{remaining}</strong>
+                  <span>remaining</span>
+                </div>
+                <div className="focus-panel__progress" aria-hidden="true">
+                  <span />
+                </div>
+                <div className="focus-panel__meta">
+                  <span>{spaces.length} spaces available</span>
+                  <span>{duration} min session</span>
+                </div>
+                <button
+                  className="focus-panel__exit"
+                  type="button"
+                  onClick={() => setEmergencyOpen(true)}
+                >
+                  End focus early
                 </button>
               </div>
             ) : null}

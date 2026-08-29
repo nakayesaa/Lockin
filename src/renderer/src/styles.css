@@ -146,6 +146,20 @@ input:focus-visible {
   padding: 42px 24px 160px;
   animation: reveal 700ms var(--ease-out) both;
 }
+.setup-screen--departing {
+  position: absolute;
+  z-index: 35;
+  inset: 0;
+  pointer-events: none;
+}
+.setup-screen--departing .hero-copy,
+.setup-screen--departing .setup-stack {
+  transform-origin: 50% 100%;
+  animation: pack-to-dock 860ms var(--ease-out) both;
+}
+.setup-screen--departing .setup-stack {
+  animation-delay: 45ms;
+}
 
 .hero-copy {
   margin-bottom: 22px;
@@ -310,6 +324,9 @@ input:focus-visible {
 .start-button:active {
   transform: scale(0.98);
 }
+.start-button:disabled {
+  cursor: default;
+}
 .start-button__icon {
   display: grid;
   width: 36px;
@@ -354,6 +371,9 @@ input:focus-visible {
   transition:
     width 350ms var(--ease-out),
     transform 350ms var(--ease-out);
+}
+.is-starting .space-dock {
+  animation: dock-receive 900ms var(--ease-out) both;
 }
 .space-button {
   position: relative;
@@ -698,36 +718,119 @@ input:focus-visible {
   border-radius: 50%;
   background: #0b1524;
 }
-.session-menu {
+.focus-panel {
   position: absolute;
-  top: 69px;
+  top: 70px;
   right: 0;
-  width: 226px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.75);
-  border-radius: 21px;
-  background: rgba(248, 251, 255, 0.88);
-  box-shadow: 0 24px 54px rgba(4, 55, 115, 0.22);
-  backdrop-filter: blur(30px);
+  width: 300px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 26px;
+  background: rgba(245, 250, 255, 0.9);
+  box-shadow:
+    0 30px 70px rgba(4, 55, 115, 0.26),
+    inset 0 1px 0 white;
+  backdrop-filter: blur(36px) saturate(170%);
   animation: menu-in 220ms var(--ease-out) both;
 }
-.session-menu strong {
-  display: block;
-  margin-top: 5px;
-  font-size: 15px;
-  letter-spacing: -0.025em;
+.focus-panel__header {
+  display: grid;
+  grid-template-columns: 38px 1fr 26px;
+  align-items: center;
+  gap: 10px;
 }
-.session-menu button {
-  width: 100%;
-  margin-top: 14px;
-  padding: 10px;
+.focus-panel__glyph {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #1b8cff, #0667d0);
+  box-shadow: 0 8px 18px rgba(0, 103, 216, 0.25);
+}
+.focus-panel__glyph > span {
+  width: 11px;
+  height: 11px;
+  border: 3px solid white;
+  border-radius: 50%;
+}
+.focus-panel__header strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+}
+.focus-panel__header button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0;
   border: 0;
-  border-radius: 11px;
-  color: #b42318;
-  background: rgba(255, 77, 66, 0.08);
+  border-radius: 50%;
+  color: #617182;
+  background: rgba(20, 50, 80, 0.06);
+  cursor: pointer;
+}
+.focus-panel__header button svg {
+  width: 13px;
+  height: 13px;
+}
+.focus-panel__time {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 26px;
+}
+.focus-panel__time strong {
+  font-size: 42px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 720;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+.focus-panel__time span {
+  color: #718091;
+  font-size: 11px;
+  font-weight: 600;
+}
+.focus-panel__progress {
+  height: 5px;
+  margin-top: 15px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(8, 63, 119, 0.09);
+}
+.focus-panel__progress span {
+  display: block;
+  width: 7%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #087cf0, #58aaff);
+}
+.focus-panel__meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 9px;
+  color: #718091;
+  font-size: 9px;
+  font-weight: 600;
+}
+.focus-panel__exit {
+  width: 100%;
+  height: 38px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 12px;
+  color: #8f312b;
+  background: rgba(217, 45, 32, 0.07);
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
+  transition: background 160ms ease;
+}
+.focus-panel__exit:hover {
+  background: rgba(217, 45, 32, 0.12);
 }
 
 .workspace {
@@ -1174,6 +1277,40 @@ input:focus-visible {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+@keyframes pack-to-dock {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  42% {
+    opacity: 0.88;
+    transform: translateY(12px) scale(0.94);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(44vh) scale(0.1);
+  }
+}
+@keyframes dock-receive {
+  0%,
+  35% {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+  62% {
+    filter: brightness(1.12);
+    transform: scale(0.94);
+  }
+  82% {
+    transform: scale(1.045);
+  }
+  100% {
+    filter: brightness(1);
+    transform: scale(1);
   }
 }
 @keyframes workspace-in {
