@@ -3,12 +3,9 @@ import { constants } from 'node:fs';
 import { access, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { z } from 'zod';
+import { createDefaultWorkspace } from '../shared/default-workspace';
 import {
   CURRENT_DATA_VERSION,
-  createDefaultState,
-  displayNameFromHostname,
-  hostRulesOverlap,
-  normalizeWebsiteUrl,
   persistedStateSchema,
   presetInputSchema,
   spaceInputSchema,
@@ -18,6 +15,11 @@ import {
   type Space,
   type SpaceInput,
 } from '../shared/data-model';
+import {
+  displayNameFromHostname,
+  hostRulesOverlap,
+  normalizeWebsiteUrl,
+} from '../shared/website-rules';
 
 export interface WorkspaceResult {
   readonly state: PersistedState;
@@ -62,6 +64,10 @@ const legacyStateSchema = z
 
 function cloneState(state: PersistedState): PersistedState {
   return structuredClone(state);
+}
+
+function defaultState(): PersistedState {
+  return persistedStateSchema.parse(createDefaultWorkspace());
 }
 
 async function pathExists(filePath: string): Promise<boolean> {
@@ -138,7 +144,7 @@ export class WorkspaceStore {
       await mkdir(dirname(this.filePath), { recursive: true });
 
       if (!(await pathExists(this.filePath))) {
-        this.state = createDefaultState();
+        this.state = defaultState();
         await this.writeAtomic(this.filePath, this.state);
         return this.result();
       }
@@ -154,7 +160,7 @@ export class WorkspaceStore {
         const stamp = this.now().toISOString().replace(/[:.]/g, '-');
         const quarantinedPath = `${this.filePath}.corrupt-${stamp}`;
         await rename(this.filePath, quarantinedPath);
-        this.state = createDefaultState();
+        this.state = defaultState();
         this.initialNotice =
           'Damaged workspace data was moved aside and safe defaults were restored.';
         await this.writeAtomic(this.filePath, this.state);
@@ -167,7 +173,11 @@ export class WorkspaceStore {
   }
 
   async getState(): Promise<WorkspaceResult> {
-    return this.exclusive(async () => this.result());
+    return this.exclusive(async () => {
+      const result = this.result();
+      this.initialNotice = null;
+      return result;
+    });
   }
 
   async createSpace(input: SpaceInput): Promise<WorkspaceResult> {
@@ -185,7 +195,9 @@ export class WorkspaceStore {
       };
       const conflicts = state.spaces.filter((candidate) => hostRulesOverlap(candidate, space));
       state.spaces.push(space);
-      state.presets.find(({ id }) => id === state.settings.activePresetId)?.spaceIds.push(space.id);
+      const activePreset = state.presets.find(({ id }) => id === state.settings.activePresetId);
+      if (!activePreset) throw new Error('Active preset is missing');
+      activePreset.spaceIds.push(space.id);
       return conflicts.length ? `This address overlaps with ${conflicts[0]?.name}.` : null;
     });
   }
@@ -225,26 +237,6 @@ export class WorkspaceStore {
       state.spaces = state.spaces.filter((space) => space.id !== id);
       state.presets.forEach((preset) => {
         preset.spaceIds = preset.spaceIds.filter((spaceId) => spaceId !== id);
-      });
-      return null;
-    });
-  }
-
-  async reorderSpaces(spaceIds: string[]): Promise<WorkspaceResult> {
-    return this.mutate((state) => {
-      const currentIds = state.spaces.map(({ id }) => id);
-      if (
-        spaceIds.length !== currentIds.length ||
-        new Set(spaceIds).size !== spaceIds.length ||
-        spaceIds.some((id) => !currentIds.includes(id))
-      ) {
-        throw new Error('Space order must contain every space exactly once');
-      }
-      const byId = new Map(state.spaces.map((space) => [space.id, space]));
-      state.spaces = spaceIds.map((id) => {
-        const space = byId.get(id);
-        if (!space) throw new Error('Space not found');
-        return space;
       });
       return null;
     });

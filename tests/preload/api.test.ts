@@ -3,11 +3,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createLockInApi } from '../../src/preload/api';
 import { IPC_CHANNELS } from '../../src/shared/contracts';
-import { createDefaultState } from '../../src/shared/data-model';
+import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 
 describe('preload API', () => {
   it('exposes only declared workspace operations and validates responses', async () => {
-    const response = { state: createDefaultState(), notice: null };
+    const response = { state: createDefaultWorkspace(), notice: null };
     const invoke = vi.fn().mockResolvedValue(response);
     const api = createLockInApi(invoke);
 
@@ -16,7 +16,6 @@ describe('preload API', () => {
       'createSpace',
       'updateSpace',
       'deleteSpace',
-      'reorderSpaces',
       'createPreset',
       'updatePreset',
       'duplicatePreset',
@@ -28,7 +27,7 @@ describe('preload API', () => {
   });
 
   it('validates mutation input before invoking the main process', async () => {
-    const invoke = vi.fn().mockResolvedValue({ state: createDefaultState(), notice: null });
+    const invoke = vi.fn().mockResolvedValue({ state: createDefaultWorkspace(), notice: null });
     const api = createLockInApi(invoke);
 
     await expect(api.deleteSpace('../unsafe')).rejects.toThrow();

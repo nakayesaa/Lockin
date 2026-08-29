@@ -12,9 +12,9 @@ The current interactive prototype includes:
 - launcher, immersive website, blocked-navigation, and completion states;
 - a minimal active-timer panel and ten-second hold-to-end control;
 - a compact floating album-player prototype; and
-- a browser-only design mode with hot reload and mocked data.
+- a browser-only design mode with hot reload.
 
-Spaces, timer updates, embedded website content, and album playback currently use mock data while their application services are being connected.
+Spaces and focus presets are validated and saved locally by the Electron main process. Timer updates, embedded website content, and album playback remain interactive previews while their application services are being connected.
 
 ## Requirements
 
@@ -73,6 +73,8 @@ src/
 
 The renderer cannot access Node.js, Electron, the filesystem, or the shell directly. It calls only the methods exposed by `window.lockIn`. Inputs and outputs are validated on both sides of IPC using Zod.
 
+Workspace data is versioned and written atomically beneath Electron's `userData` directory. Invalid data is quarantined and replaced with safe defaults; old supported versions are migrated before use.
+
 Remote websites will use separate sandboxed `WebContentsView` instances in later phases and will never receive the LockIn preload bridge.
 
 ## Tests
@@ -80,9 +82,11 @@ Remote websites will use separate sandboxed `WebContentsView` instances in later
 The production suite currently covers:
 
 - shared contract validation;
+- URL normalization and hostname matching;
+- atomic persistence, migrations, corruption recovery, and Space/Preset operations;
 - secure `BrowserWindow` defaults;
 - preload channel isolation and validation; and
-- renderer-to-preload application bootstrap.
+- the complete renderer product flow.
 
 ## Git workflow
 

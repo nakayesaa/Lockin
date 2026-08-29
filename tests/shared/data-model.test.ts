@@ -1,14 +1,13 @@
 // @vitest-environment node
 
 import { describe, expect, it } from 'vitest';
+import { createDefaultWorkspace } from '../../src/shared/default-workspace';
+import { persistedStateSchema, type Space } from '../../src/shared/data-model';
 import {
-  createDefaultState,
   hostRulesOverlap,
   hostnameMatches,
   normalizeWebsiteUrl,
-  persistedStateSchema,
-  type Space,
-} from '../../src/shared/data-model';
+} from '../../src/shared/website-rules';
 
 describe('website normalization', () => {
   it('adds HTTPS and preserves a useful start path', () => {
@@ -66,13 +65,13 @@ describe('hostname policy helpers', () => {
 
 describe('persisted state', () => {
   it('provides a valid initial preset', () => {
-    expect(persistedStateSchema.parse(createDefaultState()).settings.activePresetId).toBe(
+    expect(persistedStateSchema.parse(createDefaultWorkspace()).settings.activePresetId).toBe(
       'default',
     );
   });
 
   it('rejects dangling and duplicate preset references', () => {
-    const state = createDefaultState();
+    const state = createDefaultWorkspace();
     state.presets[0]?.spaceIds.push('missing', 'leetcode');
     expect(() => persistedStateSchema.parse(state)).toThrow();
   });

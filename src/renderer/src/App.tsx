@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
+import type { Space } from '../../shared/data-model';
 import wallpaperUrl from './assets/polo-wallpaper.png';
 import {
   ArrowLeftIcon,
@@ -11,18 +12,23 @@ import {
   ShieldIcon,
   WifiIcon,
 } from './components/Icons';
-import { SpaceDock, type DraftSpace, type Space } from './components/SpaceDock';
+import { PresetControl } from './components/PresetControl';
+import { SpaceDock, type DraftSpace } from './components/SpaceDock';
+import { spaceTone } from './components/spaceAppearance';
 import { SpotifyPlayer } from './components/SpotifyPlayer';
+import { useWorkspace } from './hooks/useWorkspace';
 
 type AppScreen = 'setup' | 'launcher' | 'workspace' | 'blocked' | 'complete';
 
 const durationOptions = [25, 45, 60, 90];
-const initialSpaces: Space[] = [
-  { id: 'leetcode', name: 'LeetCode', url: 'https://leetcode.com', mark: 'L', tone: 'amber' },
-  { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com', mark: '✦', tone: 'ink' },
-  { id: 'youtube', name: 'YouTube', url: 'https://youtube.com', mark: '▶', tone: 'rose' },
-];
-const emptyDraft: DraftSpace = { name: '', url: '', logoUrl: undefined };
+const emptyDraft: DraftSpace = {
+  name: '',
+  url: '',
+  iconDataUrl: null,
+  includeSubdomains: false,
+  accentColor: '#d9e8ff',
+  symbol: null,
+};
 
 function formatClock(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -60,11 +66,13 @@ function SetupCard({
   onDurationChange,
   onStart,
   starting,
+  disabled,
 }: {
   duration: number;
   onDurationChange: (duration: number) => void;
   onStart: () => void;
   starting: boolean;
+  disabled: boolean;
 }) {
   const [referenceTime] = useState(Date.now);
   const endTime = useMemo(() => {
@@ -83,6 +91,7 @@ function SetupCard({
           <button
             type="button"
             aria-label="Decrease duration"
+            disabled={disabled}
             onClick={() => onDurationChange(Math.max(5, duration - 5))}
           >
             <MinusIcon />
@@ -94,6 +103,7 @@ function SetupCard({
           <button
             type="button"
             aria-label="Increase duration"
+            disabled={disabled}
             onClick={() => onDurationChange(Math.min(240, duration + 5))}
           >
             <PlusIcon />
@@ -103,6 +113,7 @@ function SetupCard({
           {durationOptions.map((option) => (
             <button
               type="button"
+              disabled={disabled}
               className={duration === option ? 'is-selected' : ''}
               aria-pressed={duration === option}
               key={option}
@@ -117,7 +128,7 @@ function SetupCard({
         className="start-button"
         type="button"
         aria-label="Start focus"
-        disabled={starting}
+        disabled={starting || disabled}
         onClick={onStart}
       >
         <span className="start-button__icon">
@@ -141,6 +152,7 @@ function Workspace({
   onBack: () => void;
   onBlocked: () => void;
 }) {
+  const tone = spaceTone(space);
   return (
     <section className="workspace" aria-label={`${space.name} website preview`}>
       <button type="button" className="immersive-back" onClick={onBack}>
@@ -152,12 +164,10 @@ function Workspace({
       <span className="immersive-timer" aria-label={`${remaining} remaining`}>
         {remaining}
       </span>
-      <div className={`website-surface website-surface--${space.tone}`}>
+      <div className={`website-surface website-surface--${tone}`}>
         <div className="website-surface__ambient" aria-hidden="true" />
         <div className="website-content">
-          <span className={`preview-emblem preview-emblem--${space.tone}`}>
-            {space.mark ?? '◌'}
-          </span>
+          <span className={`preview-emblem preview-emblem--${tone}`}>{space.symbol ?? '◌'}</span>
           <p className="eyebrow">Immersive website preview</p>
           <h2>{space.name} is ready.</h2>
           <p>
@@ -243,9 +253,10 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
 }
 
 export function App() {
+  const workspace = useWorkspace();
+  const duration = workspace.activePreset.durationMinutes;
+  const spaces = workspace.activeSpaces;
   const [screen, setScreen] = useState<AppScreen>('setup');
-  const [duration, setDuration] = useState(60);
-  const [spaces, setSpaces] = useState(initialSpaces);
   const [activeSpace, setActiveSpace] = useState<Space | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState(emptyDraft);
@@ -277,7 +288,14 @@ export function App() {
 
   const openSpace = (space: Space) => {
     if (screen === 'setup') {
-      setDraft({ name: space.name, url: space.url, logoUrl: space.logoUrl });
+      setDraft({
+        name: space.name,
+        url: space.startUrl,
+        iconDataUrl: space.iconDataUrl,
+        includeSubdomains: space.includeSubdomains,
+        accentColor: space.accentColor,
+        symbol: space.symbol,
+      });
       setEditingSpaceId(space.id);
       setEditorOpen(true);
       return;
@@ -286,26 +304,20 @@ export function App() {
     setScreen('workspace');
   };
 
-  const saveSpace = () => {
-    const trimmedUrl = draft.url.trim();
-    const normalizedUrl = /^https:\/\//i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`;
-    const nextSpace: Space = {
-      id: `space-${Date.now()}`,
-      name: draft.name.trim(),
-      url: normalizedUrl,
-      tone: 'crystal',
-      ...(draft.logoUrl ? { logoUrl: draft.logoUrl } : {}),
-    };
-    setSpaces((current) =>
-      editingSpaceId
-        ? current.map((space) =>
-            space.id === editingSpaceId ? { ...nextSpace, id: editingSpaceId } : space,
-          )
-        : [...current, nextSpace],
-    );
-    setDraft(emptyDraft);
-    setEditingSpaceId(null);
-    setEditorOpen(false);
+  const saveSpace = async () => {
+    const saved = await workspace.saveSpace(editingSpaceId, {
+      name: draft.name,
+      url: draft.url,
+      includeSubdomains: draft.includeSubdomains,
+      iconDataUrl: draft.iconDataUrl,
+      accentColor: draft.accentColor,
+      symbol: draft.symbol,
+    });
+    if (saved) {
+      setDraft(emptyDraft);
+      setEditingSpaceId(null);
+      setEditorOpen(false);
+    }
   };
 
   const finishSession = () => {
@@ -340,6 +352,20 @@ export function App() {
 
       {screen === 'setup' || isStarting ? (
         <section className={`setup-screen ${isStarting ? 'setup-screen--departing' : ''}`}>
+          {screen === 'setup' ? (
+            <PresetControl
+              presets={workspace.state.presets}
+              spaces={workspace.state.spaces}
+              activePreset={workspace.activePreset}
+              saving={workspace.saving || workspace.loading}
+              onSelect={workspace.setActivePreset}
+              onCreate={workspace.createPreset}
+              onRename={workspace.renamePreset}
+              onDuplicate={workspace.duplicatePreset}
+              onDelete={workspace.deletePreset}
+              onToggleSpace={workspace.togglePresetSpace}
+            />
+          ) : null}
           <div className="hero-copy">
             <p className="brand-kicker">LockIn</p>
             <h1 id="focus-heading" aria-label="One thing at a time.">
@@ -351,9 +377,10 @@ export function App() {
           </div>
           <SetupCard
             duration={duration}
-            onDurationChange={setDuration}
+            onDurationChange={(value) => void workspace.setDuration(value)}
             onStart={startSession}
             starting={isStarting}
+            disabled={workspace.loading || workspace.saving}
           />
         </section>
       ) : null}
@@ -475,6 +502,7 @@ export function App() {
           allowAdding={screen === 'setup'}
           editing={editingSpaceId !== null}
           activeEditor={editorOpen}
+          saving={workspace.saving || workspace.loading}
           draft={draft}
           onDraftChange={setDraft}
           onOpen={openSpace}
@@ -488,8 +516,30 @@ export function App() {
             setEditingSpaceId(null);
             setEditorOpen(false);
           }}
-          onAddSave={saveSpace}
+          onAddSave={() => void saveSpace()}
+          onDelete={() => {
+            if (!editingSpaceId) return;
+            void workspace.deleteSpace(editingSpaceId).then((deleted) => {
+              if (deleted) {
+                setDraft(emptyDraft);
+                setEditingSpaceId(null);
+                setEditorOpen(false);
+              }
+            });
+          }}
+          onMove={(direction) => {
+            if (editingSpaceId) void workspace.moveSpace(editingSpaceId, direction);
+          }}
         />
+      ) : null}
+
+      {workspace.notice ? (
+        <div className="app-notice" role="status">
+          <span>{workspace.notice}</span>
+          <button type="button" aria-label="Dismiss message" onClick={workspace.dismissNotice}>
+            ×
+          </button>
+        </div>
       ) : null}
 
       {emergencyOpen ? (

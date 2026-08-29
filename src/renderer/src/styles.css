@@ -248,6 +248,12 @@ input:focus-visible {
 .duration-stepper button:active {
   transform: scale(0.96);
 }
+.duration-stepper button:disabled,
+.duration-presets button:disabled {
+  cursor: default;
+  opacity: 0.48;
+  transform: none;
+}
 .duration-stepper button svg {
   width: 18px;
   height: 18px;
@@ -481,6 +487,7 @@ input:focus-visible {
     rgba(255, 255, 255, 0.7)
   );
   box-shadow:
+    0 0 20px color-mix(in srgb, var(--orb-accent, #77bfff) 28%, transparent),
     inset -8px -8px 16px rgba(39, 116, 190, 0.2),
     inset 7px 7px 12px rgba(255, 255, 255, 0.68),
     0 7px 18px rgba(23, 90, 154, 0.18);
@@ -657,6 +664,335 @@ input:focus-visible {
 .add-space-button:disabled {
   cursor: default;
   opacity: 0.38;
+}
+
+.preset-control {
+  position: absolute;
+  z-index: 46;
+  top: 72px;
+  left: 28px;
+}
+.preset-trigger {
+  display: flex;
+  min-width: 132px;
+  height: 38px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 999px;
+  color: white;
+  background: rgba(8, 50, 101, 0.2);
+  box-shadow:
+    0 10px 28px rgba(4, 54, 112, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  cursor: pointer;
+  backdrop-filter: blur(24px) saturate(150%);
+  font-size: 11px;
+  font-weight: 680;
+}
+.preset-trigger__dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background: #74b8ff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.76);
+}
+.preset-trigger svg {
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  transition: transform 180ms ease;
+}
+.preset-trigger[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.preset-menu {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  width: 310px;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 26px;
+  color: #07111f;
+  background: rgba(246, 250, 255, 0.9);
+  box-shadow:
+    0 28px 70px rgba(5, 51, 108, 0.26),
+    inset 0 1px 0 white;
+  backdrop-filter: blur(38px) saturate(175%);
+  animation: menu-in 220ms var(--ease-out) both;
+}
+.preset-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.preset-menu__header strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+  letter-spacing: -0.03em;
+}
+.preset-menu__header > button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: white;
+  background: #087cf0;
+  cursor: pointer;
+}
+.preset-menu__header svg {
+  width: 16px;
+  height: 16px;
+}
+.preset-list {
+  display: grid;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+  background: rgba(13, 55, 96, 0.05);
+}
+.preset-list > button {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 12px;
+  color: #182637;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.preset-list > button.is-selected {
+  background: white;
+  box-shadow: 0 4px 12px rgba(24, 62, 99, 0.1);
+}
+.preset-list strong,
+.preset-list small {
+  display: block;
+}
+.preset-list strong {
+  font-size: 12px;
+}
+.preset-list small {
+  margin-top: 2px;
+  color: #748190;
+  font-size: 9px;
+}
+.preset-list svg {
+  width: 16px;
+  height: 16px;
+  color: #087cf0;
+}
+.preset-editor {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+.preset-editor > label {
+  display: grid;
+  gap: 5px;
+}
+.preset-editor > label span {
+  color: #687788;
+  font-size: 9px;
+  font-weight: 680;
+}
+.preset-editor input {
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid rgba(15, 53, 91, 0.1);
+  border-radius: 11px;
+  color: #07111f;
+  outline: 0;
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 620;
+}
+.preset-space-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.preset-space-picker button {
+  display: flex;
+  height: 28px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid rgba(22, 61, 98, 0.08);
+  border-radius: 999px;
+  color: #607080;
+  background: rgba(255, 255, 255, 0.56);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 650;
+}
+.preset-space-picker button.is-selected {
+  color: #172637;
+  border-color: rgba(8, 124, 240, 0.16);
+  background: white;
+}
+.preset-space-picker button > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.preset-space-picker svg {
+  width: 11px;
+  height: 11px;
+  color: #087cf0;
+}
+.preset-menu__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.preset-menu__actions button {
+  display: flex;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 10px;
+  color: #425467;
+  background: rgba(12, 55, 96, 0.06);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+}
+.preset-menu__actions button:last-child {
+  color: #9a3a36;
+  background: rgba(217, 45, 32, 0.06);
+}
+.preset-menu__actions button.is-confirming {
+  color: white;
+  background: #c74840;
+}
+.preset-menu__actions button:disabled,
+.preset-menu__header button:disabled,
+.preset-space-picker button:disabled,
+.preset-list button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.preset-menu__actions svg {
+  width: 13px;
+  height: 13px;
+}
+
+.space-popover .subdomain-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.space-popover .subdomain-option input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border: 1px solid rgba(18, 55, 91, 0.22);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.7);
+}
+.space-popover .subdomain-option input:checked {
+  border-color: #087cf0;
+  background: #087cf0;
+  box-shadow: inset 0 0 0 3px white;
+}
+.accent-picker {
+  display: flex;
+  gap: 7px;
+}
+.accent-picker button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.76);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(12, 45, 78, 0.18);
+  cursor: pointer;
+}
+.accent-picker button.is-selected {
+  outline: 2px solid #087cf0;
+  outline-offset: 2px;
+}
+.space-edit-actions {
+  display: flex;
+  gap: 5px;
+}
+.space-edit-actions button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  color: #496074;
+  background: rgba(11, 56, 101, 0.06);
+  cursor: pointer;
+}
+.space-edit-actions button:last-child {
+  margin-left: auto;
+  color: #a13b36;
+  background: rgba(217, 45, 32, 0.07);
+}
+.space-edit-actions svg {
+  width: 14px;
+  height: 14px;
+}
+.move-right-icon {
+  transform: rotate(180deg);
+}
+
+.app-notice {
+  position: absolute;
+  z-index: 100;
+  top: 66px;
+  left: 50%;
+  display: flex;
+  max-width: min(440px, calc(100vw - 36px));
+  min-height: 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 9px 8px 14px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 999px;
+  color: #243548;
+  background: rgba(248, 251, 255, 0.9);
+  box-shadow: 0 14px 36px rgba(4, 53, 110, 0.2);
+  backdrop-filter: blur(28px) saturate(160%);
+  font-size: 11px;
+  font-weight: 620;
+  animation: menu-in 220ms var(--ease-out) both;
+}
+.app-notice button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #526477;
+  background: rgba(11, 55, 99, 0.07);
+  cursor: pointer;
 }
 
 .launcher-screen {
@@ -1521,6 +1857,13 @@ input:focus-visible {
   }
   .setup-screen {
     padding-inline: 16px;
+  }
+  .preset-control {
+    top: 48px;
+    left: 14px;
+  }
+  .preset-menu {
+    width: min(310px, calc(100vw - 28px));
   }
   .hero-copy h1 {
     font-size: 42px;

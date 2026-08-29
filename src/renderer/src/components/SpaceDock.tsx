@@ -1,19 +1,16 @@
 import { useRef } from 'react';
-import { CloseIcon, ImageIcon, PlusIcon } from './Icons';
-
-export type Space = {
-  id: string;
-  name: string;
-  url: string;
-  mark?: string;
-  logoUrl?: string | undefined;
-  tone: 'amber' | 'ink' | 'rose' | 'crystal';
-};
+import type { CSSProperties } from 'react';
+import type { Space } from '../../../shared/data-model';
+import { ArrowLeftIcon, CloseIcon, ImageIcon, PlusIcon, TrashIcon } from './Icons';
+import { spaceTone } from './spaceAppearance';
 
 export type DraftSpace = {
   name: string;
   url: string;
-  logoUrl: string | undefined;
+  iconDataUrl: string | null;
+  includeSubdomains: boolean;
+  accentColor: string;
+  symbol: string | null;
 };
 
 type SpaceDockProps = {
@@ -21,28 +18,36 @@ type SpaceDockProps = {
   allowAdding: boolean;
   editing: boolean;
   activeEditor: boolean;
+  saving: boolean;
   draft: DraftSpace;
   onDraftChange: (draft: DraftSpace) => void;
   onOpen: (space: Space) => void;
   onAddRequest: () => void;
   onAddCancel: () => void;
   onAddSave: () => void;
+  onDelete: () => void;
+  onMove: (direction: -1 | 1) => void;
 };
 
 function SpaceMark({ space }: { space: Space }) {
-  if (space.logoUrl) {
-    return <img className="space-logo-image" src={space.logoUrl} alt="" />;
+  if (space.iconDataUrl) {
+    return <img className="space-logo-image" src={space.iconDataUrl} alt="" />;
   }
 
-  if (space.tone === 'crystal') {
+  const tone = spaceTone(space);
+  if (!space.symbol || tone === 'crystal') {
     return (
-      <span className="crystal-orb" aria-hidden="true">
+      <span
+        className="crystal-orb"
+        style={{ '--orb-accent': space.accentColor } as CSSProperties}
+        aria-hidden="true"
+      >
         <span />
       </span>
     );
   }
 
-  return <span className={`space-mark space-mark--${space.tone}`}>{space.mark}</span>;
+  return <span className={`space-mark space-mark--${tone}`}>{space.symbol}</span>;
 }
 
 export function SpaceDock({
@@ -50,30 +55,46 @@ export function SpaceDock({
   allowAdding,
   editing,
   activeEditor,
+  saving,
   draft,
   onDraftChange,
   onOpen,
   onAddRequest,
   onAddCancel,
   onAddSave,
+  onDelete,
+  onMove,
 }: SpaceDockProps) {
   const imageInput = useRef<HTMLInputElement>(null);
 
   const pickImage = (file: File | undefined) => {
     if (!file) return;
-    onDraftChange({ ...draft, logoUrl: URL.createObjectURL(file) });
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 1_000_000) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      if (typeof reader.result === 'string') {
+        onDraftChange({ ...draft, iconDataUrl: reader.result });
+      }
+    });
+    reader.readAsDataURL(file);
   };
 
   return (
     <div className={`dock-wrap ${activeEditor ? 'dock-wrap--editing' : ''}`}>
       {activeEditor ? (
-        <section className="space-popover" aria-label="Add a space">
+        <section className="space-popover" aria-label={editing ? 'Edit a space' : 'Add a space'}>
           <div className="space-popover__orb-wrap">
             <div className="space-popover__orb">
-              {draft.logoUrl ? (
-                <img src={draft.logoUrl} alt="Selected space logo" />
+              {draft.iconDataUrl ? (
+                <img src={draft.iconDataUrl} alt="Selected space logo" />
               ) : (
-                <span className="crystal-orb crystal-orb--large" aria-hidden="true">
+                <span
+                  className="crystal-orb crystal-orb--large"
+                  style={{ '--orb-accent': draft.accentColor } as CSSProperties}
+                  aria-hidden="true"
+                >
                   <span />
                 </span>
               )}
@@ -98,7 +119,7 @@ export function SpaceDock({
               ref={imageInput}
               className="sr-only"
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              accept="image/png,image/jpeg,image/webp"
               onChange={(event) => pickImage(event.target.files?.[0])}
             />
           </div>
@@ -112,8 +133,8 @@ export function SpaceDock({
               <span>Name</span>
               <input
                 value={draft.name}
-                placeholder="Figma"
-                maxLength={28}
+                placeholder="Name from website"
+                maxLength={40}
                 onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
               />
             </label>
@@ -126,13 +147,49 @@ export function SpaceDock({
                 onChange={(event) => onDraftChange({ ...draft, url: event.target.value })}
               />
             </label>
+            <label className="subdomain-option">
+              <input
+                type="checkbox"
+                checked={draft.includeSubdomains}
+                onChange={(event) =>
+                  onDraftChange({ ...draft, includeSubdomains: event.target.checked })
+                }
+              />
+              <span>Allow subdomains</span>
+            </label>
+            <div className="accent-picker" aria-label="Space color">
+              {['#d9e8ff', '#b9e6d3', '#f0b84b', '#e45a68', '#20242c'].map((color) => (
+                <button
+                  type="button"
+                  key={color}
+                  className={draft.accentColor === color ? 'is-selected' : ''}
+                  aria-label={`Use color ${color}`}
+                  aria-pressed={draft.accentColor === color}
+                  style={{ background: color }}
+                  onClick={() => onDraftChange({ ...draft, accentColor: color })}
+                />
+              ))}
+            </div>
+            {editing ? (
+              <div className="space-edit-actions">
+                <button type="button" aria-label="Move space left" onClick={() => onMove(-1)}>
+                  <ArrowLeftIcon />
+                </button>
+                <button type="button" aria-label="Move space right" onClick={() => onMove(1)}>
+                  <ArrowLeftIcon className="move-right-icon" />
+                </button>
+                <button type="button" aria-label="Delete space" onClick={onDelete}>
+                  <TrashIcon />
+                </button>
+              </div>
+            ) : null}
             <button
               className="add-space-button"
               type="button"
-              disabled={!draft.name.trim() || !draft.url.trim()}
+              disabled={!draft.url.trim() || saving}
               onClick={onAddSave}
             >
-              {editing ? 'Save changes' : 'Add to focus'}
+              {saving ? 'Saving…' : editing ? 'Save changes' : 'Add to focus'}
             </button>
           </div>
         </section>

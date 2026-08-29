@@ -31,9 +31,20 @@ describe('WorkspaceStore', () => {
       hostname: 'figma.com',
     });
 
+    const ordered = await store.updatePreset('default', {
+      name: 'Deep Work',
+      durationMinutes: 60,
+      spaceIds: ['figma', 'youtube', 'chatgpt', 'leetcode'],
+    });
     const restarted = new WorkspaceStore(filePath);
     const restored = await restarted.initialize();
-    expect(restored.state).toEqual(created.state);
+    expect(restored.state).toEqual(ordered.state);
+    expect(restored.state.presets[0]?.spaceIds).toEqual([
+      'figma',
+      'youtube',
+      'chatgpt',
+      'leetcode',
+    ]);
   });
 
   it('serializes concurrent mutations without losing updates', async () => {

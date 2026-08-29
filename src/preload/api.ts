@@ -5,7 +5,6 @@ import {
   presetCreateRequestSchema,
   presetUpdateRequestSchema,
   spaceCreateRequestSchema,
-  spaceReorderRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
   type LockInApi,
@@ -28,8 +27,6 @@ export function createLockInApi(invoke: Invoke): LockInApi {
       invokeForWorkspace(IPC_CHANNELS.spaceUpdate, spaceUpdateRequestSchema.parse({ id, input })),
     deleteSpace: async (id: string) =>
       invokeForWorkspace(IPC_CHANNELS.spaceDelete, entityRequestSchema.parse({ id })),
-    reorderSpaces: async (spaceIds: string[]) =>
-      invokeForWorkspace(IPC_CHANNELS.spaceReorder, spaceReorderRequestSchema.parse({ spaceIds })),
     createPreset: async (input: PresetInput) =>
       invokeForWorkspace(IPC_CHANNELS.presetCreate, presetCreateRequestSchema.parse(input)),
     updatePreset: async (id: string, input: PresetInput) =>

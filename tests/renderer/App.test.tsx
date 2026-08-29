@@ -1,8 +1,7 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
-import type { LockInApi } from '../../src/shared/contracts';
-import { createDefaultState } from '../../src/shared/data-model';
+import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 
 describe('LockIn product flow', () => {
   afterEach(() => {
@@ -11,37 +10,25 @@ describe('LockIn product flow', () => {
   });
 
   beforeEach(() => {
-    const workspace = { state: createDefaultState(), notice: null };
-    const api: LockInApi = {
-      getWorkspace: vi.fn().mockResolvedValue(workspace),
-      createSpace: vi.fn().mockResolvedValue(workspace),
-      updateSpace: vi.fn().mockResolvedValue(workspace),
-      deleteSpace: vi.fn().mockResolvedValue(workspace),
-      reorderSpaces: vi.fn().mockResolvedValue(workspace),
-      createPreset: vi.fn().mockResolvedValue(workspace),
-      updatePreset: vi.fn().mockResolvedValue(workspace),
-      duplicatePreset: vi.fn().mockResolvedValue(workspace),
-      deletePreset: vi.fn().mockResolvedValue(workspace),
-      setActivePreset: vi.fn().mockResolvedValue(workspace),
-    };
-
     Object.defineProperty(window, 'lockIn', {
       configurable: true,
-      value: api,
+      value: undefined,
     });
   });
 
-  it('renders the setup experience and changes duration', () => {
+  it('renders the setup experience and changes duration', async () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: /one thing at a time/i })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Start focus' })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: '45' }));
-    expect(screen.getByRole('button', { name: '45' })).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '45' })).toHaveAttribute('aria-pressed', 'true'),
+    );
   });
 
-  it('adds a crystal space to the dynamic dock', () => {
+  it('adds a crystal space to the dynamic dock', async () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add an allowed website' }));
@@ -49,7 +36,82 @@ describe('LockIn product flow', () => {
     fireEvent.change(screen.getByLabelText('Website'), { target: { value: 'figma.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add to focus' }));
 
-    expect(screen.getByRole('button', { name: 'Open Figma' })).toBeVisible();
+    expect(await screen.findByRole('button', { name: 'Open Figma' })).toBeVisible();
+  });
+
+  it('manages presets without leaving the setup screen', async () => {
+    render(<App />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open preset menu. Current preset: Deep Work' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Create preset' }));
+    expect(
+      await screen.findByRole('button', { name: 'Open preset menu. Current preset: New Focus' }),
+    ).toBeVisible();
+
+    const name = screen.getByLabelText('Preset name');
+    fireEvent.change(name, { target: { value: 'Writing' } });
+    fireEvent.blur(name);
+    await waitFor(() => expect(name).toHaveValue('Writing'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'YouTube' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Open YouTube' })).not.toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+    expect(await screen.findByRole('option', { name: /Writing Copy/ })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('option', { name: /Writing Copy/ })).not.toBeInTheDocument(),
+    );
+  });
+
+  it('keeps an unsafe website draft open and shows a useful error', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add an allowed website' }));
+    fireEvent.change(screen.getByLabelText('Website'), {
+      target: { value: 'http://unsafe.example' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add to focus' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Only secure HTTPS websites are allowed',
+    );
+    expect(screen.getByRole('region', { name: 'Add a space' })).toBeVisible();
+  });
+
+  it('loads persisted data and saves preset duration through the bridge', async () => {
+    const initial = createDefaultWorkspace();
+    initial.presets[0]!.name = 'Persisted Work';
+    const updated = structuredClone(initial);
+    updated.presets[0]!.durationMinutes = 45;
+    const getWorkspace = vi.fn().mockResolvedValue({ state: initial, notice: null });
+    const updatePreset = vi.fn().mockResolvedValue({ state: updated, notice: null });
+    Object.defineProperty(window, 'lockIn', {
+      configurable: true,
+      value: { getWorkspace, updatePreset },
+    });
+
+    render(<App />);
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open preset menu. Current preset: Persisted Work',
+      }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '45' }));
+
+    await waitFor(() =>
+      expect(updatePreset).toHaveBeenCalledWith('default', {
+        name: 'Persisted Work',
+        durationMinutes: 45,
+        spaceIds: ['leetcode', 'chatgpt', 'youtube'],
+      }),
+    );
+    expect(screen.getByRole('button', { name: '45' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('previews the floating album player interactions', () => {

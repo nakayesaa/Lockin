@@ -7,12 +7,12 @@ import {
   spaceUpdateRequestSchema,
   workspaceResultSchema,
 } from '../../src/shared/contracts';
-import { createDefaultState } from '../../src/shared/data-model';
+import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 
 describe('shared IPC contracts', () => {
   it('accepts a validated workspace response', () => {
     expect(
-      workspaceResultSchema.parse({ state: createDefaultState(), notice: null }).state.version,
+      workspaceResultSchema.parse({ state: createDefaultWorkspace(), notice: null }).state.version,
     ).toBe(1);
   });
 

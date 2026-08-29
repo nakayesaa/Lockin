@@ -5,7 +5,6 @@ import {
   presetCreateRequestSchema,
   presetUpdateRequestSchema,
   spaceCreateRequestSchema,
-  spaceReorderRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
 } from '../shared/contracts';
@@ -27,10 +26,6 @@ export function registerIpcHandlers(store: WorkspaceStore): void {
   ipcMain.handle(IPC_CHANNELS.spaceDelete, async (_event, input: unknown) => {
     const request = entityRequestSchema.parse(input);
     return workspaceResultSchema.parse(await store.deleteSpace(request.id));
-  });
-  ipcMain.handle(IPC_CHANNELS.spaceReorder, async (_event, input: unknown) => {
-    const request = spaceReorderRequestSchema.parse(input);
-    return workspaceResultSchema.parse(await store.reorderSpaces(request.spaceIds));
   });
   ipcMain.handle(IPC_CHANNELS.presetCreate, async (_event, input: unknown) =>
     workspaceResultSchema.parse(await store.createPreset(presetCreateRequestSchema.parse(input))),
