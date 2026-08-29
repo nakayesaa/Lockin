@@ -27,4 +27,4 @@ Phase 1 proves that authentication pages render and that session state persists 
 - Date: 2026-08-29
 - Status: Accepted
 
-The emergency exit uses one uninterrupted three-second press-and-hold action instead of a typed confirmation phrase. Releasing early cancels the action immediately. This remains deliberate enough to prevent accidental exits while avoiding an unnecessarily punitive interaction.
+The emergency exit uses one uninterrupted ten-second press-and-hold action instead of a typed confirmation phrase. Releasing early cancels the action immediately. The confirmation surface contains only the centered glass “Hold To End” control, keeping the action deliberate without adding instructional friction.

@@ -188,56 +188,57 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
     if (holdTimer.current !== null) return;
     let progress = 0;
     holdTimer.current = window.setInterval(() => {
-      progress = Math.min(100, progress + 2);
+      progress = Math.min(100, progress + 1);
       setHoldProgress(progress);
       if (progress === 100) {
         if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
         holdTimer.current = null;
         onExit();
       }
-    }, 60);
+    }, 100);
   }, [onExit]);
 
   useEffect(() => stopHolding, [stopHolding]);
+  useEffect(() => {
+    const cancelWithEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', cancelWithEscape);
+    return () => window.removeEventListener('keydown', cancelWithEscape);
+  }, [onCancel]);
 
   return (
-    <div className="modal-backdrop">
-      <section className="exit-dialog" role="dialog" aria-modal="true" aria-labelledby="exit-title">
-        <div className="dialog-icon dialog-icon--warning">
-          <ShieldIcon />
-        </div>
-        <p className="eyebrow">Emergency exit</p>
-        <h2 id="exit-title">End this focus session?</h2>
-        <p>Your setup stays safe. This focus session will simply end early.</p>
-        <div className="exit-assurance">
-          <span aria-hidden="true">3s</span>
-          <p>A deliberate hold prevents accidental exits. Release anytime to keep focusing.</p>
-        </div>
-        <div className="dialog-actions">
-          <button type="button" className="secondary-button" onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="hold-exit-button"
-            style={{ '--hold-progress': `${holdProgress}%` } as CSSProperties}
-            aria-label="Press and hold for three seconds to end session"
-            onPointerDown={startHolding}
-            onPointerUp={stopHolding}
-            onPointerCancel={stopHolding}
-            onPointerLeave={stopHolding}
-            onKeyDown={(event) => {
-              if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) startHolding();
-            }}
-            onKeyUp={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') stopHolding();
-            }}
-          >
-            <span className="hold-exit-button__fill" aria-hidden="true" />
-            <span>{holdProgress > 0 ? 'Keep holding…' : 'Hold to end'}</span>
-          </button>
-        </div>
-      </section>
+    <div
+      className="modal-backdrop minimal-exit-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="End focus session"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <button
+        type="button"
+        className="hold-exit-button"
+        style={{ '--hold-progress': `${holdProgress}%` } as CSSProperties}
+        aria-label="Press and hold for ten seconds to end session"
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          startHolding();
+        }}
+        onPointerUp={stopHolding}
+        onPointerCancel={stopHolding}
+        onPointerLeave={stopHolding}
+        onKeyDown={(event) => {
+          if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) startHolding();
+        }}
+        onKeyUp={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') stopHolding();
+        }}
+      >
+        <span className="hold-exit-button__fill" aria-hidden="true" />
+        <span>Hold To End</span>
+      </button>
     </div>
   );
 }

@@ -612,19 +612,16 @@ input:focus-visible {
   font-size: 18px;
   letter-spacing: -0.035em;
 }
-.space-popover label,
-.exit-dialog label {
+.space-popover label {
   display: grid;
   gap: 4px;
 }
-.space-popover label span,
-.exit-dialog label span {
+.space-popover label span {
   color: var(--ink-muted);
   font-size: 10px;
   font-weight: 650;
 }
-.space-popover input,
-.exit-dialog input {
+.space-popover input {
   width: 100%;
   height: 36px;
   padding: 0 11px;
@@ -638,8 +635,7 @@ input:focus-visible {
     border-color 160ms ease,
     box-shadow 160ms ease;
 }
-.space-popover input:focus,
-.exit-dialog input:focus {
+.space-popover input:focus {
   border-color: rgba(0, 113, 227, 0.5);
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.12);
 }
@@ -970,8 +966,7 @@ input:focus-visible {
   backdrop-filter: blur(10px);
   animation: reveal 350ms ease both;
 }
-.state-card,
-.exit-dialog {
+.state-card {
   width: min(430px, calc(100vw - 36px));
   padding: 36px;
   border: 1px solid rgba(255, 255, 255, 0.78);
@@ -997,27 +992,19 @@ input:focus-visible {
   width: 26px;
   height: 26px;
 }
-.dialog-icon--warning {
-  color: #b85f00;
-  background: #fff0d6;
-}
-.state-card h2,
-.exit-dialog h2 {
+.state-card h2 {
   margin: 8px 0 10px;
   font-size: 30px;
   letter-spacing: -0.05em;
   line-height: 1.05;
 }
-.state-card > p:not(.eyebrow),
-.exit-dialog > p:not(.eyebrow) {
+.state-card > p:not(.eyebrow) {
   margin: 0 auto;
   color: #677585;
   font-size: 13px;
   line-height: 1.55;
 }
-.primary-button,
-.secondary-button,
-.danger-button {
+.primary-button {
   display: inline-flex;
   min-height: 42px;
   align-items: center;
@@ -1039,67 +1026,37 @@ input:focus-visible {
   width: 16px;
   height: 16px;
 }
-.secondary-button {
-  color: #243445;
-  background: #e9eef3;
-}
-.danger-button {
-  color: white;
-  background: #d92d20;
-}
-.danger-button:disabled {
-  cursor: default;
-  opacity: 0.35;
-}
-.exit-assurance {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  align-items: center;
-  gap: 12px;
-  margin-top: 22px;
-  padding: 12px;
-  border: 1px solid rgba(26, 63, 99, 0.08);
-  border-radius: 15px;
-  background: rgba(232, 239, 246, 0.58);
-}
-.exit-assurance > span {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: 50%;
-  color: #7a4a13;
-  background: rgba(255, 193, 92, 0.22);
-  font-size: 12px;
-  font-weight: 760;
-}
-.exit-assurance p {
-  margin: 0;
-  color: #647383;
-  font-size: 11px;
-  line-height: 1.45;
-}
 .hold-exit-button {
   position: relative;
-  min-width: 132px;
-  min-height: 42px;
+  width: 224px;
+  height: 68px;
   overflow: hidden;
-  border: 0;
-  border-radius: 12px;
-  color: white;
-  background: #182333;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  color: #122033;
+  background: rgba(246, 250, 255, 0.72);
+  box-shadow:
+    0 24px 60px rgba(0, 32, 72, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
+  backdrop-filter: blur(32px) saturate(175%);
+  font-size: 14px;
+  font-weight: 720;
+  letter-spacing: -0.015em;
   isolation: isolate;
+  transition: transform 180ms var(--ease-out);
+}
+.hold-exit-button:active {
+  transform: scale(0.97);
 }
 .hold-exit-button__fill {
   position: absolute;
   z-index: -1;
   inset: 0;
   width: var(--hold-progress);
-  background: linear-gradient(90deg, #d92d20, #ee574d);
-  transition: width 60ms linear;
+  background: linear-gradient(90deg, rgba(109, 184, 255, 0.52), rgba(225, 241, 255, 0.72));
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.72);
+  transition: width 100ms linear;
 }
 .hold-exit-button > span:last-child {
   position: relative;
@@ -1249,16 +1206,6 @@ input:focus-visible {
   background: #111b28;
   box-shadow: 0 10px 22px rgba(8, 24, 42, 0.2);
 }
-.dialog-actions {
-  display: flex;
-  justify-content: center;
-  gap: 9px;
-  margin-top: 24px;
-}
-.dialog-actions .primary-button {
-  margin-top: 0;
-}
-
 .modal-backdrop {
   position: fixed;
   z-index: 90;
@@ -1270,17 +1217,9 @@ input:focus-visible {
   backdrop-filter: blur(16px);
   animation: reveal 220ms ease both;
 }
-.exit-dialog {
-  text-align: left;
-}
-.exit-dialog .dialog-icon {
-  margin-left: 0;
-}
-.exit-dialog .eyebrow {
-  text-align: left;
-}
-.exit-dialog .dialog-actions {
-  justify-content: flex-end;
+.minimal-exit-overlay {
+  background: rgba(5, 25, 49, 0.26);
+  backdrop-filter: blur(24px) saturate(120%);
 }
 
 .quiet-close {

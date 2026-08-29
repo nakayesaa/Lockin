@@ -236,7 +236,7 @@ LockIn must never create a dangerous lockout. Include a deliberate emergency exi
 
 1. Press a non-obvious shortcut such as `Ctrl + Shift + L`.
 2. Reveal a focused emergency-exit confirmation sheet.
-3. Press and hold the exit control continuously for three seconds; releasing cancels it.
+3. Press and hold the exit control continuously for ten seconds; releasing cancels it.
 4. Mark the session locally as abandoned and leave focus mode.
 
 If the app crashes or Windows restarts:

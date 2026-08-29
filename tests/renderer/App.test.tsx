@@ -68,10 +68,15 @@ describe('Phase 3 product flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
     fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
 
-    expect(screen.getByRole('heading', { name: 'End this focus session?' })).toBeVisible();
     expect(
-      screen.getByRole('button', { name: 'Press and hold for three seconds to end session' }),
+      screen.getByRole('button', { name: 'Press and hold for ten seconds to end session' }),
     ).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'End focus session' })).toHaveTextContent(
+      /^Hold To End$/,
+    );
+    expect(
+      screen.queryByRole('heading', { name: 'End this focus session?' }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText('END MY SESSION')).not.toBeInTheDocument();
   });
 
@@ -97,9 +102,9 @@ describe('Phase 3 product flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
     fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
     fireEvent.pointerDown(
-      screen.getByRole('button', { name: 'Press and hold for three seconds to end session' }),
+      screen.getByRole('button', { name: 'Press and hold for ten seconds to end session' }),
     );
-    act(() => vi.advanceTimersByTime(3_100));
+    act(() => vi.advanceTimersByTime(10_100));
 
     expect(screen.getByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Start another' })).toBeVisible();
