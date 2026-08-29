@@ -6,7 +6,6 @@ import {
   ArrowLeftIcon,
   BatteryIcon,
   CheckIcon,
-  CloseIcon,
   MinusIcon,
   PlayIcon,
   PlusIcon,
@@ -14,6 +13,7 @@ import {
   WifiIcon,
 } from './components/Icons';
 import { SpaceDock, type DraftSpace, type Space } from './components/SpaceDock';
+import { SpotifyPlayer } from './components/SpotifyPlayer';
 
 type AppScreen = 'setup' | 'launcher' | 'workspace' | 'blocked' | 'complete';
 
@@ -512,11 +512,7 @@ export function App() {
       {emergencyOpen ? (
         <EmergencyExit onCancel={() => setEmergencyOpen(false)} onExit={finishSession} />
       ) : null}
-      {screen === 'setup' ? (
-        <button className="quiet-close" type="button" aria-label="Close LockIn">
-          <CloseIcon />
-        </button>
-      ) : null}
+      {screen === 'setup' || screen === 'launcher' ? <SpotifyPlayer /> : null}
     </main>
   );
 }

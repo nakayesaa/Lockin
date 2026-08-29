@@ -27,6 +27,31 @@ export function PlayIcon(props: IconProps) {
   );
 }
 
+export function PauseIcon(props: IconProps) {
+  return (
+    <IconBase {...props} fill="currentColor" stroke="none">
+      <rect x="6.5" y="5" width="4" height="14" rx="1" />
+      <rect x="13.5" y="5" width="4" height="14" rx="1" />
+    </IconBase>
+  );
+}
+
+export function SkipBackIcon(props: IconProps) {
+  return (
+    <IconBase {...props} fill="currentColor" stroke="none">
+      <path d="M5.5 5.5h2v13h-2zM18.5 6.3a1 1 0 0 0-1.55-.83l-8 5.7a1 1 0 0 0 0 1.66l8 5.7a1 1 0 0 0 1.55-.83V6.3Z" />
+    </IconBase>
+  );
+}
+
+export function SkipForwardIcon(props: IconProps) {
+  return (
+    <IconBase {...props} fill="currentColor" stroke="none">
+      <path d="M16.5 5.5h2v13h-2zM5.5 6.3a1 1 0 0 1 1.55-.83l8 5.7a1 1 0 0 1 0 1.66l-8 5.7a1 1 0 0 1-1.55-.83V6.3Z" />
+    </IconBase>
+  );
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <IconBase {...props}>

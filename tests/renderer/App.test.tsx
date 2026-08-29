@@ -47,6 +47,17 @@ describe('Phase 3 product flow', () => {
     expect(screen.getByRole('button', { name: 'Open Figma' })).toBeVisible();
   });
 
+  it('previews the floating album player interactions', () => {
+    render(<App />);
+
+    expect(screen.getByRole('complementary', { name: 'Spotify player preview' })).toBeVisible();
+    expect(screen.getByText('Blue Hour')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
+    expect(screen.getByText('Soft Current')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Pause music' }));
+    expect(screen.getByRole('button', { name: 'Play music' })).toBeVisible();
+  });
+
   it('walks from launcher to workspace and blocked navigation', () => {
     render(<App />);
 
