@@ -37,14 +37,6 @@ export function SpotifyPlayer() {
       </div>
       <div className="spotify-console">
         <div className="spotify-track">
-          <span
-            className={`playing-bars ${playing ? 'playing-bars--active' : ''}`}
-            aria-hidden="true"
-          >
-            <i />
-            <i />
-            <i />
-          </span>
           <div>
             <strong>{track.title}</strong>
             <span>{track.artist}</span>
