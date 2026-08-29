@@ -184,16 +184,15 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
 
   const startHolding = useCallback(() => {
     if (holdTimer.current !== null) return;
+    let progress = 0;
     holdTimer.current = window.setInterval(() => {
-      setHoldProgress((current) => {
-        const next = Math.min(100, current + 2);
-        if (next === 100) {
-          if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
-          holdTimer.current = null;
-          window.queueMicrotask(onExit);
-        }
-        return next;
-      });
+      progress = Math.min(100, progress + 2);
+      setHoldProgress(progress);
+      if (progress === 100) {
+        if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
+        holdTimer.current = null;
+        onExit();
+      }
     }, 60);
   }, [onExit]);
 
@@ -447,25 +446,42 @@ export function App() {
       ) : null}
 
       {screen === 'complete' ? (
-        <section className="centered-state">
-          <div className="state-card state-card--complete">
-            <div className="dialog-icon dialog-icon--success">
-              <CheckIcon />
+        <section className="centered-state centered-state--complete">
+          <div className="completion-card">
+            <div className="completion-mark" aria-hidden="true">
+              <span className="completion-mark__halo" />
+              <span className="completion-mark__check">
+                <CheckIcon />
+              </span>
             </div>
             <p className="eyebrow">Session complete</p>
-            <h2>You made space for what matters.</h2>
-            <p className="completion-time">{duration}:00</p>
-            <p>Focused with {spaces.length} carefully chosen spaces.</p>
-            <div className="dialog-actions">
-              <button type="button" className="secondary-button" onClick={() => setScreen('setup')}>
-                Finish
+            <h2>That was time well spent.</h2>
+            <p className="completion-lead">You gave one thing your full attention.</p>
+            <div className="completion-summary">
+              <div>
+                <strong>{duration}:00</strong>
+                <span>focused</span>
+              </div>
+              <span className="completion-summary__divider" aria-hidden="true" />
+              <div>
+                <strong>{spaces.length}</strong>
+                <span>spaces</span>
+              </div>
+            </div>
+            <div className="completion-actions">
+              <button
+                type="button"
+                className="completion-button completion-button--quiet"
+                onClick={() => setScreen('setup')}
+              >
+                Done
               </button>
               <button
                 type="button"
-                className="primary-button"
+                className="completion-button completion-button--primary"
                 onClick={() => setScreen('launcher')}
               >
-                Start again
+                Start another
               </button>
             </div>
           </div>

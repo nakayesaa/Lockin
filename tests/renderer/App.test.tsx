@@ -1,10 +1,13 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
 import type { LockInApi } from '../../src/shared/contracts';
 
 describe('Phase 3 product flow', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
 
   beforeEach(() => {
     const api: LockInApi = {
@@ -70,5 +73,21 @@ describe('Phase 3 product flow', () => {
       screen.getByRole('button', { name: 'Press and hold for three seconds to end session' }),
     ).toBeVisible();
     expect(screen.queryByPlaceholderText('END MY SESSION')).not.toBeInTheDocument();
+  });
+
+  it('shows the polished completion summary after a deliberate exit', () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
+    fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Press and hold for three seconds to end session' }),
+    );
+    act(() => vi.advanceTimersByTime(3_100));
+
+    expect(screen.getByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Start another' })).toBeVisible();
   });
 });

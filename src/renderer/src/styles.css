@@ -1052,10 +1052,6 @@ input:focus-visible {
   color: #b85f00;
   background: #fff0d6;
 }
-.dialog-icon--success {
-  color: #14783e;
-  background: #ddf5e7;
-}
 .state-card h2,
 .exit-dialog h2 {
   margin: 8px 0 10px;
@@ -1063,7 +1059,7 @@ input:focus-visible {
   letter-spacing: -0.05em;
   line-height: 1.05;
 }
-.state-card > p:not(.eyebrow):not(.completion-time),
+.state-card > p:not(.eyebrow),
 .exit-dialog > p:not(.eyebrow) {
   margin: 0 auto;
   color: #677585;
@@ -1159,13 +1155,150 @@ input:focus-visible {
 .hold-exit-button > span:last-child {
   position: relative;
 }
-.completion-time {
-  margin: 20px 0 8px;
-  color: #0878e8;
-  font-size: 48px;
+.centered-state--complete {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.2), transparent 33%),
+    rgba(29, 103, 187, 0.08);
+  backdrop-filter: blur(7px) saturate(112%);
+}
+.completion-card {
+  position: relative;
+  width: min(540px, calc(100vw - 36px));
+  overflow: hidden;
+  padding: 44px 48px 34px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 38px;
+  background: rgba(250, 252, 255, 0.9);
+  box-shadow:
+    0 42px 100px rgba(3, 51, 108, 0.28),
+    inset 0 1px 0 white;
+  text-align: center;
+  backdrop-filter: blur(40px) saturate(170%);
+  animation: completion-in 650ms var(--ease-out) both;
+}
+.completion-card::before {
+  position: absolute;
+  top: -140px;
+  left: 50%;
+  width: 300px;
+  height: 220px;
+  content: '';
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(56, 146, 255, 0.16);
+  filter: blur(38px);
+}
+.completion-mark {
+  position: relative;
+  display: grid;
+  width: 82px;
+  height: 82px;
+  place-items: center;
+  margin: 0 auto 25px;
+}
+.completion-mark__halo {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(22, 130, 244, 0.18);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(215, 238, 255, 0.9), rgba(231, 245, 255, 0.38));
+  box-shadow: 0 14px 34px rgba(18, 112, 208, 0.16);
+}
+.completion-mark__check {
+  position: relative;
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(145deg, #2b96ff, #0871df);
+  box-shadow:
+    0 8px 18px rgba(0, 104, 220, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.completion-mark__check svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.2;
+}
+.completion-card h2 {
+  position: relative;
+  max-width: 420px;
+  margin: 8px auto 9px;
+  font-size: clamp(34px, 4vw, 46px);
+  font-weight: 710;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+.completion-lead {
+  margin: 0;
+  color: #6c7a89;
+  font-size: 13px;
+}
+.completion-summary {
+  display: grid;
+  width: min(330px, 100%);
+  grid-template-columns: 1fr 1px 1fr;
+  align-items: center;
+  margin: 30px auto 0;
+  padding: 20px 24px;
+  border: 1px solid rgba(19, 59, 98, 0.07);
+  border-radius: 22px;
+  background: rgba(232, 240, 247, 0.54);
+}
+.completion-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.completion-summary strong {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
   font-weight: 720;
-  letter-spacing: -0.055em;
-  line-height: 1;
+  letter-spacing: -0.05em;
+}
+.completion-summary div span {
+  color: #7b8997;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.completion-summary__divider {
+  width: 1px;
+  height: 34px;
+  background: rgba(22, 57, 91, 0.1);
+}
+.completion-actions {
+  display: grid;
+  width: min(330px, 100%);
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 9px;
+  margin: 16px auto 0;
+}
+.completion-button {
+  height: 46px;
+  border: 0;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    transform 180ms var(--ease-out),
+    box-shadow 180ms ease;
+}
+.completion-button:hover {
+  transform: translateY(-2px);
+}
+.completion-button--quiet {
+  color: #3b4b5c;
+  background: rgba(225, 232, 239, 0.8);
+}
+.completion-button--primary {
+  color: white;
+  background: #111b28;
+  box-shadow: 0 10px 22px rgba(8, 24, 42, 0.2);
 }
 .dialog-actions {
   display: flex;
@@ -1293,6 +1426,16 @@ input:focus-visible {
     transform: translateY(0) scale(1);
   }
 }
+@keyframes completion-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 @keyframes whisper {
   0%,
   100% {
@@ -1382,6 +1525,13 @@ input:focus-visible {
     width: 52px;
     min-width: 52px;
     height: 52px;
+  }
+  .completion-card {
+    padding: 36px 22px 24px;
+    border-radius: 30px;
+  }
+  .completion-card h2 {
+    font-size: 34px;
   }
 }
 
