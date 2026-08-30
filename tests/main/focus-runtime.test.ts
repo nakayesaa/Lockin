@@ -135,6 +135,23 @@ describe('FocusRuntime website lifecycle', () => {
 
   it('owns only one website view and disposes it when switching or closing', async () => {
     const { runtime, window } = setup();
+    const permissionCheck = electron.siteSession.setPermissionCheckHandler.mock.calls[0]?.[0] as
+      (() => boolean) | undefined;
+    const permissionRequest = electron.siteSession.setPermissionRequestHandler.mock
+      .calls[0]?.[0] as
+      | ((contents: unknown, permission: string, callback: (allowed: boolean) => void) => void)
+      | undefined;
+    const downloadHandler = electron.siteSession.on.mock.calls.find(
+      ([event]) => event === 'will-download',
+    )?.[1] as ((event: { preventDefault(): void }) => void) | undefined;
+    const permissionCallback = vi.fn();
+    const downloadEvent = { preventDefault: vi.fn() };
+
+    expect(permissionCheck?.()).toBe(false);
+    permissionRequest?.({}, 'camera', permissionCallback);
+    expect(permissionCallback).toHaveBeenCalledWith(false);
+    downloadHandler?.(downloadEvent);
+    expect(downloadEvent.preventDefault).toHaveBeenCalledOnce();
 
     await runtime.openSpace('chatgpt');
     const first = electron.views[0]!;

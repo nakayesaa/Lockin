@@ -18,6 +18,13 @@ describe('website normalization', () => {
     });
   });
 
+  it('canonicalizes Unicode, mixed-case, and trailing-dot hostnames', () => {
+    expect(normalizeWebsiteUrl('https://BÜCHER.Example./read')).toEqual({
+      startUrl: 'https://xn--bcher-kva.example/read',
+      hostname: 'xn--bcher-kva.example',
+    });
+  });
+
   it.each([
     'http://example.com',
     'javascript:alert(1)',
@@ -76,9 +83,24 @@ describe('hostname policy helpers', () => {
     };
 
     expect(findAllowedSpaceForUrl('https://docs.example.com/page', [space])).toBe(space);
+    expect(findAllowedSpaceForUrl('https://DOCS.EXAMPLE.COM./page', [space])).toBe(space);
     expect(findAllowedSpaceForUrl('https://example.com.evil.test/', [space])).toBeNull();
+    expect(findAllowedSpaceForUrl('https://example.com@evil.test/', [space])).toBeNull();
     expect(findAllowedSpaceForUrl('http://example.com/', [space])).toBeNull();
     expect(findAllowedSpaceForUrl('not a url', [space])).toBeNull();
+  });
+
+  it.each([
+    'http://example.com/',
+    'file:///etc/passwd',
+    'javascript:alert(1)',
+    'data:text/html,hello',
+    'blob:https://example.com/id',
+    'mailto:hello@example.com',
+    'lockin://example.com/',
+  ])('rejects non-HTTPS navigation: %s', (url) => {
+    const space = createDefaultWorkspace().spaces[0]!;
+    expect(findAllowedSpaceForUrl(url, [space])).toBeNull();
   });
 });
 

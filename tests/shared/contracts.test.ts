@@ -6,6 +6,7 @@ import {
   presetUpdateRequestSchema,
   sessionEventSchema,
   sessionStartRequestSchema,
+  siteOpenRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
 } from '../../src/shared/contracts';
@@ -36,6 +37,10 @@ describe('shared IPC contracts', () => {
       presetId: 'deep-work',
     });
     expect(() => sessionStartRequestSchema.parse({ presetId: '../unsafe' })).toThrow();
+    expect(siteOpenRequestSchema.parse({ spaceId: 'chatgpt' })).toEqual({ spaceId: 'chatgpt' });
+    expect(() =>
+      siteOpenRequestSchema.parse({ spaceId: '../unsafe', url: 'https://evil.test' }),
+    ).toThrow();
     expect(
       sessionEventSchema.parse({ type: 'navigation-blocked', destination: 'example.com' }),
     ).toEqual({ type: 'navigation-blocked', destination: 'example.com' });
