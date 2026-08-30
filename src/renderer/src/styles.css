@@ -1410,6 +1410,14 @@ input:focus-visible {
   font-size: 13px;
   line-height: 1.55;
 }
+.bridge-error code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #24496f;
+  background: rgba(28, 102, 177, 0.09);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9em;
+}
 .primary-button {
   display: inline-flex;
   min-height: 42px;

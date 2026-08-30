@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell } from 'electron';
+import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createLogger } from './logger';
 import { getPreloadPath } from './preload-path';
@@ -11,8 +12,29 @@ export async function createMainWindow(
   beforeLoad?: (window: BrowserWindow) => void,
 ): Promise<BrowserWindow> {
   const preloadPath = getPreloadPath(__dirname);
+  await access(preloadPath);
   const window = new BrowserWindow(createWindowOptions(preloadPath, !app.isPackaged));
   beforeLoad?.(window);
+
+  window.webContents.on('preload-error', (_event, failedPath, error) => {
+    logger.error('Preload bridge failed', {
+      preloadPath: failedPath,
+      message: error.message,
+    });
+  });
+  window.webContents.once('did-finish-load', () => {
+    void window.webContents
+      .executeJavaScript("typeof window.lockIn === 'object'", true)
+      .then((available: boolean) => {
+        if (!available) logger.error('Preload bridge is unavailable', { preloadPath });
+      })
+      .catch((error: unknown) => {
+        logger.error('Preload bridge check failed', {
+          preloadPath,
+          message: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+  });
 
   window.webContents.setWindowOpenHandler(({ url }) => {
     try {

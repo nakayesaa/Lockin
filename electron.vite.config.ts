@@ -11,6 +11,9 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
   },
   renderer: {
+    define: {
+      __LOCKIN_UI_PREVIEW__: 'false',
+    },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),

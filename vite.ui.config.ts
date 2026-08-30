@@ -5,6 +5,9 @@ import { resolve } from 'node:path';
 
 export default defineConfig({
   root: resolve('src/renderer'),
+  define: {
+    __LOCKIN_UI_PREVIEW__: 'true',
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

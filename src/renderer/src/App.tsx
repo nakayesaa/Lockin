@@ -20,6 +20,7 @@ import { spaceTone } from './components/spaceAppearance';
 import { SpotifyPlayer } from './components/SpotifyPlayer';
 import { useWorkspace } from './hooks/useWorkspace';
 import { useFocusSession, type SiteState } from './hooks/useFocusSession';
+import { isDesktopBridgeMissing } from './runtime-mode';
 
 type AppScreen = 'setup' | 'launcher' | 'workspace' | 'blocked' | 'complete';
 
@@ -343,7 +344,7 @@ function WebsiteDataDialog({
   );
 }
 
-export function App() {
+function LockInApp() {
   const workspace = useWorkspace();
   const focus = useFocusSession();
   const duration = workspace.activePreset.durationMinutes;
@@ -715,4 +716,31 @@ export function App() {
       {currentScreen === 'setup' || currentScreen === 'launcher' ? <SpotifyPlayer /> : null}
     </main>
   );
+}
+
+export function App() {
+  if (isDesktopBridgeMissing(window.lockIn)) {
+    return (
+      <main
+        className="app-shell"
+        style={{ '--wallpaper': `url(${wallpaperUrl})` } as CSSProperties}
+      >
+        <section className="centered-state">
+          <div className="state-card bridge-error" role="alert">
+            <div className="dialog-icon">
+              <ShieldIcon />
+            </div>
+            <p className="eyebrow">Startup check failed</p>
+            <h2>LockIn couldn’t connect to its desktop runtime.</h2>
+            <p>
+              Close this window and restart with <code>npm run dev</code>. The terminal will show
+              the preload error that needs attention.
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return <LockInApp />;
 }

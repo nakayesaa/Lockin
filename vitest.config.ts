@@ -3,6 +3,9 @@ import { resolve } from 'node:path';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  define: {
+    __LOCKIN_UI_PREVIEW__: 'true',
+  },
   plugins: [react()],
   resolve: {
     alias: {
