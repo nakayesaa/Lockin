@@ -455,10 +455,13 @@ input:focus-visible {
   font-size: 16px;
 }
 .space-logo-image {
-  width: 100%;
-  height: 100%;
+  display: block;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
 }
 .space-tooltip {
   position: absolute;
@@ -575,11 +578,14 @@ input:focus-visible {
   place-items: center;
 }
 .space-popover__orb > img {
+  display: block;
   width: 98px;
   height: 98px;
+  flex: none;
   border: 4px solid rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
   box-shadow: 0 12px 28px rgba(20, 80, 140, 0.2);
 }
 .orb-action {
