@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { access, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
+import { access, mkdir, readFile, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { z } from 'zod';
 import { createDefaultWorkspace } from '../shared/default-workspace';
@@ -20,6 +20,7 @@ import {
   hostRulesOverlap,
   normalizeWebsiteUrl,
 } from '../shared/website-rules';
+import { writeJsonAtomically } from './json-file';
 
 export interface WorkspaceResult {
   readonly state: PersistedState;
@@ -76,23 +77,6 @@ async function pathExists(filePath: string): Promise<boolean> {
     return true;
   } catch {
     return false;
-  }
-}
-
-export async function writeJsonAtomically(filePath: string, state: PersistedState): Promise<void> {
-  await mkdir(dirname(filePath), { recursive: true });
-  const temporaryPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
-  const handle = await open(temporaryPath, 'wx', 0o600);
-
-  try {
-    await handle.writeFile(`${JSON.stringify(state, null, 2)}\n`, 'utf8');
-    await handle.sync();
-    await handle.close();
-    await rename(temporaryPath, filePath);
-  } catch (error) {
-    await handle.close().catch(() => undefined);
-    await unlink(temporaryPath).catch(() => undefined);
-    throw error;
   }
 }
 
