@@ -13,6 +13,7 @@ The current interactive prototype includes:
 - a minimal active-timer panel and ten-second hold-to-end control;
 - restart-safe focus sessions with absolute-deadline timers;
 - real allowlisted websites with loading, retry, and crash-recovery states;
+- controlled redirects, forms, new-window requests, and external protocols;
 - persistent website login data with a guarded reset action;
 - a compact floating album-player prototype; and
 - a browser-only design mode with hot reload.
@@ -78,7 +79,9 @@ The renderer cannot access Node.js, Electron, the filesystem, or the shell direc
 
 Workspace data is versioned and written atomically beneath Electron's `userData` directory. Invalid data is quarantined and replaced with safe defaults; old supported versions are migrated before use.
 
-Remote websites use exactly one disposable, sandboxed `WebContentsView` with a persistent site partition for login cookies. Switching spaces or pressing Back closes the previous view, so remote renderers cannot accumulate in memory. Websites never receive the LockIn preload bridge, Node.js access, permissions, downloads, pop-up windows, or developer tools. Main-frame navigations and redirects are checked against the active session snapshot before they are allowed. Site data can be cleared from setup, but never during an active focus session.
+Remote websites use exactly one disposable, sandboxed `WebContentsView` with a persistent site partition for login cookies. Switching spaces or pressing Back closes the previous view, so remote renderers cannot accumulate in memory. Websites never receive the LockIn preload bridge, Node.js access, permissions, downloads, unrestricted pop-up windows, or developer tools. Every top-level link, form, redirect, history navigation, and new-window request is checked against the active session snapshot; allowed new windows load in the same controlled view, while outside destinations and non-HTTPS protocols produce the blocked state. Subresources remain under the website's normal browser security model so modern sites can function.
+
+Authentication or support hosts are not trusted implicitly. Add each required hostname as a Space in the preset before starting focus. Site data can be cleared from setup, but never during an active focus session.
 
 Active sessions are written atomically to a separate versioned file. A restarted app resumes the same deadline and allowed-space snapshot; expired sessions complete at their original deadline rather than restarting the timer.
 
@@ -92,6 +95,7 @@ The production suite currently covers:
 - active-session persistence, restart recovery, deadline completion, and early ending;
 - secure embedded-site options and session navigation matching;
 - embedded-site lifecycle events and website-data reset commands;
+- adversarial hostname, protocol, redirect, and pop-up handling;
 - secure `BrowserWindow` defaults;
 - preload channel isolation and validation; and
 - the complete renderer product flow.
