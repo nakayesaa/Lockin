@@ -94,4 +94,11 @@ export function registerIpcHandlers(
     if (!session || session.endReason !== null) runtime.reset();
     else runtime.closeSpace();
   });
+  ipcMain.handle(IPC_CHANNELS.siteDataClear, async () => {
+    const session = await sessions.peekSession();
+    if (session?.endReason === null) {
+      throw new Error('Website data cannot be cleared during an active focus session');
+    }
+    await runtime.clearWebsiteData();
+  });
 }

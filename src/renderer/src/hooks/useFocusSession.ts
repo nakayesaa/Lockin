@@ -17,6 +17,7 @@ export interface FocusSessionController {
   clear(): Promise<boolean>;
   openSpace(id: string): Promise<boolean>;
   closeSpace(): Promise<void>;
+  clearWebsiteData(): Promise<boolean>;
   dismissNotice(): void;
   dismissBlocked(): void;
 }
@@ -179,6 +180,20 @@ export function useFocusSession(): FocusSessionController {
     }
   }, []);
 
+  const clearWebsiteData = useCallback(async () => {
+    setBusy(true);
+    try {
+      await window.lockIn?.clearWebsiteData?.();
+      setNotice('Website data cleared. You’ll sign in again next time.');
+      return true;
+    } catch (error) {
+      setNotice(errorMessage(error));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   return {
     session,
     remainingSeconds,
@@ -192,6 +207,7 @@ export function useFocusSession(): FocusSessionController {
     clear,
     openSpace,
     closeSpace,
+    clearWebsiteData,
     dismissNotice: () => setNotice(null),
     dismissBlocked: () => setBlockedDestination(null),
   };

@@ -116,6 +116,27 @@ describe('LockIn product flow', () => {
     expect(screen.getByRole('button', { name: '45' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('requires confirmation before clearing private website data', async () => {
+    const state = createDefaultWorkspace();
+    const clearWebsiteData = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window, 'lockIn', {
+      configurable: true,
+      value: {
+        getWorkspace: vi.fn().mockResolvedValue({ state, notice: null }),
+        clearWebsiteData,
+      },
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Website data' }));
+    expect(screen.getByRole('dialog', { name: 'Clear website data?' })).toBeVisible();
+    expect(clearWebsiteData).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear data' }));
+    await waitFor(() => expect(clearWebsiteData).toHaveBeenCalledOnce());
+    expect(screen.getByRole('status')).toHaveTextContent('Website data cleared');
+  });
+
   it('resumes a persisted session and reports real blocked navigation', async () => {
     const state = createDefaultWorkspace();
     const preset = state.presets[0]!;

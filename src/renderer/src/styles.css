@@ -688,6 +688,38 @@ input:focus-visible {
   top: 72px;
   left: 28px;
 }
+.website-data-trigger {
+  position: absolute;
+  z-index: 45;
+  top: 118px;
+  left: 28px;
+  display: flex;
+  height: 30px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(8, 50, 101, 0.12);
+  cursor: pointer;
+  backdrop-filter: blur(20px) saturate(140%);
+  font-size: 10px;
+  font-weight: 620;
+  transition: 180ms ease;
+}
+.website-data-trigger:hover {
+  color: white;
+  background: rgba(8, 50, 101, 0.24);
+}
+.website-data-trigger:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.website-data-trigger svg {
+  width: 12px;
+  height: 12px;
+}
 .preset-trigger {
   display: flex;
   min-width: 132px;
@@ -1595,6 +1627,69 @@ input:focus-visible {
   background: rgba(5, 25, 49, 0.26);
   backdrop-filter: blur(24px) saturate(120%);
 }
+.website-data-dialog {
+  width: min(400px, calc(100vw - 40px));
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 28px;
+  color: #13263b;
+  background: rgba(247, 251, 255, 0.9);
+  box-shadow:
+    0 30px 80px rgba(3, 22, 43, 0.25),
+    inset 0 1px 0 white;
+  backdrop-filter: blur(32px) saturate(145%);
+  text-align: center;
+  animation: completion-in 280ms var(--ease-out) both;
+}
+.website-data-dialog__icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  place-items: center;
+  border-radius: 15px;
+  color: #087cf0;
+  background: rgba(0, 113, 227, 0.1);
+}
+.website-data-dialog__icon svg {
+  width: 22px;
+  height: 22px;
+}
+.website-data-dialog h2 {
+  margin: 7px 0 9px;
+  font-size: 25px;
+  letter-spacing: -0.04em;
+}
+.website-data-dialog > p:not(.eyebrow) {
+  margin: 0;
+  color: #647386;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.website-data-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 24px;
+}
+.website-data-dialog__actions button {
+  height: 42px;
+  border: 0;
+  border-radius: 13px;
+  color: #304459;
+  background: rgba(220, 229, 238, 0.7);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+.website-data-dialog__actions button.is-destructive {
+  color: white;
+  background: #e5484d;
+}
+.website-data-dialog__actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
 
 .spotify-player {
   position: absolute;
@@ -1904,6 +1999,9 @@ input:focus-visible {
   }
   .preset-control {
     top: 48px;
+    left: 14px;
+  }
+  .website-data-trigger {
     left: 14px;
   }
   .preset-menu {

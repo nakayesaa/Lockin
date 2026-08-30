@@ -26,6 +26,7 @@ export const IPC_CHANNELS = {
   sessionClear: 'lockin:session:clear',
   siteOpen: 'lockin:site:open',
   siteClose: 'lockin:site:close',
+  siteDataClear: 'lockin:site-data:clear',
   sessionEvent: 'lockin:session:event',
 } as const;
 
@@ -99,6 +100,7 @@ export interface LockInApi {
   clearSession(): Promise<SessionResult>;
   openSite(spaceId: string): Promise<void>;
   closeSite(): Promise<void>;
+  clearWebsiteData(): Promise<void>;
   onSessionEvent(listener: (event: SessionEvent) => void): () => void;
 }
 

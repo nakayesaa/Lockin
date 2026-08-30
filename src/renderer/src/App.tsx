@@ -11,6 +11,7 @@ import {
   PlayIcon,
   PlusIcon,
   ShieldIcon,
+  TrashIcon,
   WifiIcon,
 } from './components/Icons';
 import { PresetControl } from './components/PresetControl';
@@ -295,6 +296,53 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
   );
 }
 
+function WebsiteDataDialog({
+  busy,
+  onCancel,
+  onClear,
+}: {
+  busy: boolean;
+  onCancel: () => void;
+  onClear: () => void;
+}) {
+  useEffect(() => {
+    const cancelWithEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) onCancel();
+    };
+    window.addEventListener('keydown', cancelWithEscape);
+    return () => window.removeEventListener('keydown', cancelWithEscape);
+  }, [busy, onCancel]);
+
+  return (
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="website-data-heading"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget && !busy) onCancel();
+      }}
+    >
+      <section className="website-data-dialog">
+        <span className="website-data-dialog__icon" aria-hidden="true">
+          <ShieldIcon />
+        </span>
+        <p className="eyebrow">Private workspace</p>
+        <h2 id="website-data-heading">Clear website data?</h2>
+        <p>This signs you out and removes cookies, cache, and local site storage.</p>
+        <div className="website-data-dialog__actions">
+          <button type="button" disabled={busy} onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="is-destructive" disabled={busy} onClick={onClear}>
+            {busy ? 'Clearing…' : 'Clear data'}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function App() {
   const workspace = useWorkspace();
   const focus = useFocusSession();
@@ -307,6 +355,7 @@ export function App() {
   const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
   const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [websiteDataOpen, setWebsiteDataOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const startTimer = useRef<number | null>(null);
   useEffect(
@@ -415,18 +464,31 @@ export function App() {
       {currentScreen === 'setup' || isStarting ? (
         <section className={`setup-screen ${isStarting ? 'setup-screen--departing' : ''}`}>
           {currentScreen === 'setup' ? (
-            <PresetControl
-              presets={workspace.state.presets}
-              spaces={workspace.state.spaces}
-              activePreset={workspace.activePreset}
-              saving={workspace.saving || workspace.loading}
-              onSelect={workspace.setActivePreset}
-              onCreate={workspace.createPreset}
-              onRename={workspace.renamePreset}
-              onDuplicate={workspace.duplicatePreset}
-              onDelete={workspace.deletePreset}
-              onToggleSpace={workspace.togglePresetSpace}
-            />
+            <>
+              <PresetControl
+                presets={workspace.state.presets}
+                spaces={workspace.state.spaces}
+                activePreset={workspace.activePreset}
+                saving={workspace.saving || workspace.loading}
+                onSelect={workspace.setActivePreset}
+                onCreate={workspace.createPreset}
+                onRename={workspace.renamePreset}
+                onDuplicate={workspace.duplicatePreset}
+                onDelete={workspace.deletePreset}
+                onToggleSpace={workspace.togglePresetSpace}
+              />
+              {window.lockIn ? (
+                <button
+                  type="button"
+                  className="website-data-trigger"
+                  disabled={focus.busy}
+                  onClick={() => setWebsiteDataOpen(true)}
+                >
+                  <TrashIcon />
+                  Website data
+                </button>
+              ) : null}
+            </>
           ) : null}
           <div className="hero-copy">
             <p className="brand-kicker">LockIn</p>
@@ -636,6 +698,18 @@ export function App() {
         <EmergencyExit
           onCancel={() => setEmergencyOpen(false)}
           onExit={() => void finishSession()}
+        />
+      ) : null}
+
+      {websiteDataOpen ? (
+        <WebsiteDataDialog
+          busy={focus.busy}
+          onCancel={() => setWebsiteDataOpen(false)}
+          onClear={() => {
+            void focus.clearWebsiteData().then((cleared) => {
+              if (cleared) setWebsiteDataOpen(false);
+            });
+          }}
         />
       ) : null}
       {currentScreen === 'setup' || currentScreen === 'launcher' ? <SpotifyPlayer /> : null}

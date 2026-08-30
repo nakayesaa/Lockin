@@ -77,6 +77,13 @@ export class FocusRuntime {
     this.closeSpace();
   }
 
+  async clearWebsiteData(): Promise<void> {
+    this.reset();
+    const siteSession = electronSession.fromPartition(SITE_PARTITION);
+    await siteSession.clearStorageData();
+    await siteSession.clearCache();
+  }
+
   destroy(): void {
     this.window.off('resize', this.resize);
     this.window.off('enter-full-screen', this.resize);

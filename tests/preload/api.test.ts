@@ -31,10 +31,19 @@ describe('preload API', () => {
       'clearSession',
       'openSite',
       'closeSite',
+      'clearWebsiteData',
       'onSessionEvent',
     ]);
     await expect(api.getWorkspace()).resolves.toEqual(response);
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.workspaceGet);
+  });
+
+  it('exposes a narrow command for clearing embedded website data', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined);
+    const api = createLockInApi(createBridge(invoke));
+
+    await expect(api.clearWebsiteData()).resolves.toBeUndefined();
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.siteDataClear);
   });
 
   it('validates mutation input before invoking the main process', async () => {

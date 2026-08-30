@@ -57,6 +57,9 @@ export function createLockInApi(bridge: Bridge): LockInApi {
     closeSite: async () => {
       await bridge.invoke(IPC_CHANNELS.siteClose);
     },
+    clearWebsiteData: async () => {
+      await bridge.invoke(IPC_CHANNELS.siteDataClear);
+    },
     onSessionEvent: (listener: (event: SessionEvent) => void) => {
       const wrapped = (_event: Electron.IpcRendererEvent, input: unknown) =>
         listener(sessionEventSchema.parse(input));
