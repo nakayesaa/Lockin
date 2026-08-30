@@ -54,6 +54,22 @@ export function hostnameMatches(
   return candidate === allowed || (includeSubdomains && candidate.endsWith(`.${allowed}`));
 }
 
+export function findAllowedSpaceForUrl(url: string, spaces: Space[]): Space | null {
+  try {
+    const destination = new URL(url);
+    if (destination.protocol !== 'https:' || destination.username || destination.password) {
+      return null;
+    }
+    return (
+      spaces.find((space) =>
+        hostnameMatches(space.hostname, destination.hostname, space.includeSubdomains),
+      ) ?? null
+    );
+  } catch {
+    return null;
+  }
+}
+
 export function hostRulesOverlap(first: Space, second: Space): boolean {
   return (
     hostnameMatches(first.hostname, second.hostname, first.includeSubdomains) ||

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 import { persistedStateSchema, type Space } from '../../src/shared/data-model';
 import {
+  findAllowedSpaceForUrl,
   hostRulesOverlap,
   hostnameMatches,
   normalizeWebsiteUrl,
@@ -60,6 +61,24 @@ describe('hostname policy helpers', () => {
     };
 
     expect(hostRulesOverlap(base, child)).toBe(true);
+  });
+
+  it('resolves only secure top-level destinations allowed by the session', () => {
+    const space: Space = {
+      id: 'docs',
+      name: 'Docs',
+      startUrl: 'https://docs.example.com/',
+      hostname: 'example.com',
+      includeSubdomains: true,
+      iconDataUrl: null,
+      accentColor: '#ffffff',
+      symbol: null,
+    };
+
+    expect(findAllowedSpaceForUrl('https://docs.example.com/page', [space])).toBe(space);
+    expect(findAllowedSpaceForUrl('https://example.com.evil.test/', [space])).toBeNull();
+    expect(findAllowedSpaceForUrl('http://example.com/', [space])).toBeNull();
+    expect(findAllowedSpaceForUrl('not a url', [space])).toBeNull();
   });
 });
 
