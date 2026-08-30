@@ -13,7 +13,15 @@ describe('main-window security options', () => {
       contextIsolation: true,
       sandbox: true,
       webviewTag: false,
+      devTools: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      navigateOnDragDrop: false,
     });
+  });
+
+  it('enables developer tools only when explicitly requested', () => {
+    expect(createWindowOptions('/lockin/preload.js', true).webPreferences?.devTools).toBe(true);
   });
 
   it('starts hidden so content is ready before display', () => {

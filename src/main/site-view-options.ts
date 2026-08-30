@@ -16,6 +16,8 @@ export function createSiteViewOptions(): WebContentsViewConstructorOptions {
       navigateOnDragDrop: false,
       nodeIntegrationInSubFrames: false,
       nodeIntegrationInWorker: false,
+      safeDialogs: true,
+      safeDialogsMessage: 'LockIn stopped this website from opening more dialogs.',
     },
   };
 }

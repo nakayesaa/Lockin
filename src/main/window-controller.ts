@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import { join } from 'node:path';
 import { createLogger } from './logger';
 import { getPreloadPath } from './preload-path';
@@ -11,7 +11,7 @@ export async function createMainWindow(
   beforeLoad?: (window: BrowserWindow) => void,
 ): Promise<BrowserWindow> {
   const preloadPath = getPreloadPath(__dirname);
-  const window = new BrowserWindow(createWindowOptions(preloadPath));
+  const window = new BrowserWindow(createWindowOptions(preloadPath, !app.isPackaged));
   beforeLoad?.(window);
 
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -33,6 +33,7 @@ export async function createMainWindow(
       logger.warn('Blocked renderer navigation');
     }
   });
+  window.webContents.on('will-attach-webview', (event) => event.preventDefault());
 
   window.once('ready-to-show', () => window.show());
 
