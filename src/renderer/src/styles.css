@@ -1170,11 +1170,25 @@ input:focus-visible {
   background: white;
   animation: workspace-in 500ms var(--ease-out) both;
 }
-.immersive-back {
+.workspace-controls {
   position: absolute;
   z-index: 4;
-  top: 18px;
-  left: 18px;
+  top: 0;
+  right: 0;
+  display: flex;
+  width: 140px;
+  height: 64px;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 12px;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+.workspace-controls:hover,
+.workspace-controls:focus-within {
+  opacity: 1;
+}
+.immersive-back {
   display: flex;
   width: 42px;
   height: 42px;

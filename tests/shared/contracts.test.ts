@@ -6,6 +6,7 @@ import {
   presetUpdateRequestSchema,
   sessionEventSchema,
   sessionStartRequestSchema,
+  siteControlsRequestSchema,
   siteOpenRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -38,6 +39,8 @@ describe('shared IPC contracts', () => {
     });
     expect(() => sessionStartRequestSchema.parse({ presetId: '../unsafe' })).toThrow();
     expect(siteOpenRequestSchema.parse({ spaceId: 'chatgpt' })).toEqual({ spaceId: 'chatgpt' });
+    expect(siteControlsRequestSchema.parse({ visible: false })).toEqual({ visible: false });
+    expect(() => siteControlsRequestSchema.parse({ visible: 'yes' })).toThrow();
     expect(() =>
       siteOpenRequestSchema.parse({ spaceId: '../unsafe', url: 'https://evil.test' }),
     ).toThrow();

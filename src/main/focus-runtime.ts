@@ -5,7 +5,8 @@ import { createLogger } from './logger';
 import type { SessionStore } from './session-store';
 import { createSiteViewOptions, SITE_PARTITION } from './site-view-options';
 
-const BACK_GUTTER = 64;
+const CONTROL_BAR_HEIGHT = 64;
+const CONTROL_HOTSPOT_SIZE = 96;
 const configuredSessions = new WeakSet<object>();
 
 interface FocusRuntimeOptions {
@@ -19,6 +20,7 @@ export type SiteState =
 
 export class FocusRuntime {
   private siteView: WebContentsView | null = null;
+  private siteControlsVisible = false;
   private loadSequence = 0;
   private readonly logger = createLogger('focus-runtime');
   private readonly resize: () => void;
@@ -73,12 +75,19 @@ export class FocusRuntime {
   }
 
   closeSpace(): void {
+    this.siteControlsVisible = false;
     this.disposeSiteView();
     if (!this.window.isDestroyed()) this.window.webContents.focus();
   }
 
   reset(): void {
     this.closeSpace();
+  }
+
+  setSiteControlsVisible(visible: boolean): void {
+    if (!this.siteView || this.siteControlsVisible === visible) return;
+    this.siteControlsVisible = visible;
+    this.layoutActiveView();
   }
 
   async clearWebsiteData(): Promise<void> {
@@ -101,6 +110,13 @@ export class FocusRuntime {
     view.setBackgroundColor('#ffffff');
     const { webContents } = view;
     webContents.setIgnoreMenuShortcuts(true);
+    webContents.on('before-mouse-event', (_event, mouse) => {
+      if (mouse.type !== 'mouseMove' || this.siteView !== view || this.siteControlsVisible) return;
+      const [width = 0] = this.window.getContentSize();
+      if (mouse.x >= width - CONTROL_HOTSPOT_SIZE && mouse.y <= CONTROL_HOTSPOT_SIZE) {
+        this.setSiteControlsVisible(true);
+      }
+    });
 
     const guard = (details: { url: string; isMainFrame: boolean; preventDefault(): void }) => {
       if (!details.isMainFrame || findAllowedSpaceForUrl(details.url, allowedSpaces)) return;
@@ -151,11 +167,12 @@ export class FocusRuntime {
   private layoutActiveView(): void {
     if (!this.siteView) return;
     const [width = 0, height = 0] = this.window.getContentSize();
+    const top = this.siteControlsVisible ? CONTROL_BAR_HEIGHT : 0;
     this.siteView.setBounds({
-      x: BACK_GUTTER,
-      y: 0,
-      width: Math.max(0, width - BACK_GUTTER),
-      height: Math.max(0, height),
+      x: 0,
+      y: top,
+      width: Math.max(0, width),
+      height: Math.max(0, height - top),
     });
   }
 

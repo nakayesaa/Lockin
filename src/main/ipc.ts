@@ -7,6 +7,7 @@ import {
   sessionResultSchema,
   sessionStartRequestSchema,
   siteOpenRequestSchema,
+  siteControlsRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -93,6 +94,10 @@ export function registerIpcHandlers(
     const session = await sessions.peekSession();
     if (!session || session.endReason !== null) runtime.reset();
     else runtime.closeSpace();
+  });
+  ipcMain.handle(IPC_CHANNELS.siteControlsSet, (_event, input: unknown) => {
+    const { visible } = siteControlsRequestSchema.parse(input);
+    runtime.setSiteControlsVisible(visible);
   });
   ipcMain.handle(IPC_CHANNELS.siteDataClear, async () => {
     const session = await sessions.peekSession();

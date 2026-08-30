@@ -26,6 +26,7 @@ export const IPC_CHANNELS = {
   sessionClear: 'lockin:session:clear',
   siteOpen: 'lockin:site:open',
   siteClose: 'lockin:site:close',
+  siteControlsSet: 'lockin:site-controls:set',
   siteDataClear: 'lockin:site-data:clear',
   sessionEvent: 'lockin:session:event',
 } as const;
@@ -48,6 +49,7 @@ export const presetUpdateRequestSchema = z
   .strict();
 export const sessionStartRequestSchema = z.object({ presetId: entityIdSchema }).strict();
 export const siteOpenRequestSchema = z.object({ spaceId: entityIdSchema }).strict();
+export const siteControlsRequestSchema = z.object({ visible: z.boolean() }).strict();
 
 export const sessionResultSchema = z
   .object({
@@ -100,6 +102,7 @@ export interface LockInApi {
   clearSession(): Promise<SessionResult>;
   openSite(spaceId: string): Promise<void>;
   closeSite(): Promise<void>;
+  setSiteControlsVisible(visible: boolean): Promise<void>;
   clearWebsiteData(): Promise<void>;
   onSessionEvent(listener: (event: SessionEvent) => void): () => void;
 }

@@ -8,6 +8,7 @@ import {
   sessionResultSchema,
   sessionStartRequestSchema,
   siteOpenRequestSchema,
+  siteControlsRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -56,6 +57,12 @@ export function createLockInApi(bridge: Bridge): LockInApi {
     },
     closeSite: async () => {
       await bridge.invoke(IPC_CHANNELS.siteClose);
+    },
+    setSiteControlsVisible: async (visible: boolean) => {
+      await bridge.invoke(
+        IPC_CHANNELS.siteControlsSet,
+        siteControlsRequestSchema.parse({ visible }),
+      );
     },
     clearWebsiteData: async () => {
       await bridge.invoke(IPC_CHANNELS.siteDataClear);

@@ -17,6 +17,7 @@ export interface FocusSessionController {
   clear(): Promise<boolean>;
   openSpace(id: string): Promise<boolean>;
   closeSpace(): Promise<void>;
+  hideSiteControls(): void;
   clearWebsiteData(): Promise<boolean>;
   dismissNotice(): void;
   dismissBlocked(): void;
@@ -180,6 +181,12 @@ export function useFocusSession(): FocusSessionController {
     }
   }, []);
 
+  const hideSiteControls = useCallback(() => {
+    void window.lockIn?.setSiteControlsVisible(false).catch((error: unknown) => {
+      setNotice(errorMessage(error));
+    });
+  }, []);
+
   const clearWebsiteData = useCallback(async () => {
     setBusy(true);
     try {
@@ -207,6 +214,7 @@ export function useFocusSession(): FocusSessionController {
     clear,
     openSpace,
     closeSpace,
+    hideSiteControls,
     clearWebsiteData,
     dismissNotice: () => setNotice(null),
     dismissBlocked: () => setBlockedDestination(null),

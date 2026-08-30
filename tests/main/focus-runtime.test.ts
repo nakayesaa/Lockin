@@ -155,8 +155,13 @@ describe('FocusRuntime website lifecycle', () => {
 
     await runtime.openSpace('chatgpt');
     const first = electron.views[0]!;
-    expect(first.setBounds).toHaveBeenCalledWith({ x: 64, y: 0, width: 1136, height: 800 });
+    expect(first.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 1200, height: 800 });
     expect(first.webContents.setIgnoreMenuShortcuts).toHaveBeenCalledWith(true);
+
+    first.webContents.emit('before-mouse-event', {}, { type: 'mouseMove', x: 1150, y: 20 });
+    expect(first.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 64, width: 1200, height: 736 });
+    runtime.setSiteControlsVisible(false);
+    expect(first.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1200, height: 800 });
 
     await runtime.openSpace('leetcode');
     expect(first.webContents.close).toHaveBeenCalledOnce();

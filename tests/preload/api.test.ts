@@ -31,6 +31,7 @@ describe('preload API', () => {
       'clearSession',
       'openSite',
       'closeSite',
+      'setSiteControlsVisible',
       'clearWebsiteData',
       'onSessionEvent',
     ]);
@@ -44,6 +45,14 @@ describe('preload API', () => {
 
     await expect(api.clearWebsiteData()).resolves.toBeUndefined();
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.siteDataClear);
+  });
+
+  it('validates the website control visibility command', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined);
+    const api = createLockInApi(createBridge(invoke));
+
+    await api.setSiteControlsVisible(false);
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.siteControlsSet, { visible: false });
   });
 
   it('validates mutation input before invoking the main process', async () => {

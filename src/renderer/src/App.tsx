@@ -151,6 +151,7 @@ function Workspace({
   onBack,
   onBlocked,
   onRetry,
+  onControlsHide,
   connected,
   siteState,
 }: {
@@ -159,6 +160,7 @@ function Workspace({
   onBack: () => void;
   onBlocked: () => void;
   onRetry: () => void;
+  onControlsHide: () => void;
   connected: boolean;
   siteState: SiteState;
 }) {
@@ -167,12 +169,14 @@ function Workspace({
   const loading = siteState.status === 'loading' && siteState.spaceId === space.id;
   return (
     <section className="workspace" aria-label={`${space.name} website workspace`}>
-      <button type="button" className="immersive-back" onClick={onBack}>
-        <span className="immersive-back__icon">
-          <ArrowLeftIcon />
-        </span>
-        <span className="immersive-back__label">Back</span>
-      </button>
+      <div className="workspace-controls" onPointerLeave={onControlsHide}>
+        <button type="button" className="immersive-back" onClick={onBack}>
+          <span className="immersive-back__icon">
+            <ArrowLeftIcon />
+          </span>
+          <span className="immersive-back__label">Back</span>
+        </button>
+      </div>
       {!connected ? (
         <span className="immersive-timer" aria-label={`${remaining} remaining`}>
           {remaining}
@@ -562,6 +566,7 @@ function LockInApp() {
           }}
           onBlocked={() => setScreen('blocked')}
           onRetry={() => void focus.openSpace(activeSpace.id)}
+          onControlsHide={focus.hideSiteControls}
         />
       ) : null}
 
