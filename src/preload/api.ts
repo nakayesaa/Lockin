@@ -4,19 +4,28 @@ import {
   entityRequestSchema,
   presetCreateRequestSchema,
   presetUpdateRequestSchema,
+  sessionEventSchema,
+  sessionResultSchema,
+  sessionStartRequestSchema,
+  siteOpenRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
   type LockInApi,
+  type SessionEvent,
 } from '../shared/contracts';
 import type { PresetInput, SpaceInput } from '../shared/data-model';
 
-type Invoke = IpcRenderer['invoke'];
+type Bridge = Pick<IpcRenderer, 'invoke' | 'on' | 'removeListener'>;
 
-export function createLockInApi(invoke: Invoke): LockInApi {
+export function createLockInApi(bridge: Bridge): LockInApi {
   const invokeForWorkspace = async (channel: string, input?: unknown) =>
     workspaceResultSchema.parse(
-      input === undefined ? await invoke(channel) : await invoke(channel, input),
+      input === undefined ? await bridge.invoke(channel) : await bridge.invoke(channel, input),
+    );
+  const invokeForSession = async (channel: string, input?: unknown) =>
+    sessionResultSchema.parse(
+      input === undefined ? await bridge.invoke(channel) : await bridge.invoke(channel, input),
     );
 
   return Object.freeze({
@@ -37,5 +46,22 @@ export function createLockInApi(invoke: Invoke): LockInApi {
       invokeForWorkspace(IPC_CHANNELS.presetDelete, entityRequestSchema.parse({ id })),
     setActivePreset: async (id: string) =>
       invokeForWorkspace(IPC_CHANNELS.presetSetActive, entityRequestSchema.parse({ id })),
+    getSession: () => invokeForSession(IPC_CHANNELS.sessionGet),
+    startSession: (presetId: string) =>
+      invokeForSession(IPC_CHANNELS.sessionStart, sessionStartRequestSchema.parse({ presetId })),
+    endSession: () => invokeForSession(IPC_CHANNELS.sessionEnd),
+    clearSession: () => invokeForSession(IPC_CHANNELS.sessionClear),
+    openSite: async (spaceId: string) => {
+      await bridge.invoke(IPC_CHANNELS.siteOpen, siteOpenRequestSchema.parse({ spaceId }));
+    },
+    closeSite: async () => {
+      await bridge.invoke(IPC_CHANNELS.siteClose);
+    },
+    onSessionEvent: (listener: (event: SessionEvent) => void) => {
+      const wrapped = (_event: Electron.IpcRendererEvent, input: unknown) =>
+        listener(sessionEventSchema.parse(input));
+      bridge.on(IPC_CHANNELS.sessionEvent, wrapped);
+      return () => bridge.removeListener(IPC_CHANNELS.sessionEvent, wrapped);
+    },
   });
 }

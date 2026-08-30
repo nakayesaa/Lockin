@@ -9,17 +9,13 @@ import type {
   SpaceInput,
 } from '../../../shared/data-model';
 import { displayNameFromHostname, normalizeWebsiteUrl } from '../../../shared/website-rules';
+import { errorMessage } from '../errorMessage';
 
 type Operation = (api: LockInApi, state: PersistedState) => Promise<WorkspaceResult>;
 type PreviewOperation = (state: PersistedState) => PersistedState;
 
 function createPreviewId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function errorMessage(error: unknown): string {
-  if (!(error instanceof Error)) return 'The change could not be saved.';
-  return error.message.replace(/^Error invoking remote method '[^']+': Error: /, '');
 }
 
 export interface WorkspaceController {
@@ -93,7 +89,7 @@ export function useWorkspace(): WorkspaceController {
           }
           succeeded = true;
         } catch (error) {
-          setNotice(errorMessage(error));
+          setNotice(errorMessage(error, 'The change could not be saved.'));
         }
       });
       queue.current = task;

@@ -2,6 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
 import { createDefaultWorkspace } from '../../src/shared/default-workspace';
+import { CURRENT_SESSION_VERSION } from '../../src/shared/session-time';
+import type { SessionEvent } from '../../src/shared/contracts';
 
 describe('LockIn product flow', () => {
   afterEach(() => {
@@ -114,6 +116,48 @@ describe('LockIn product flow', () => {
     expect(screen.getByRole('button', { name: '45' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('resumes a persisted session and reports real blocked navigation', async () => {
+    const state = createDefaultWorkspace();
+    const preset = state.presets[0]!;
+    const startedAt = new Date();
+    let emit: ((event: SessionEvent) => void) | undefined;
+    Object.defineProperty(window, 'lockIn', {
+      configurable: true,
+      value: {
+        getWorkspace: vi.fn().mockResolvedValue({ state, notice: null }),
+        getSession: vi.fn().mockResolvedValue({
+          session: {
+            version: CURRENT_SESSION_VERSION,
+            id: 'restored-session',
+            presetId: preset.id,
+            presetName: preset.name,
+            durationSeconds: preset.durationMinutes * 60,
+            startedAt: startedAt.toISOString(),
+            endsAt: new Date(startedAt.getTime() + preset.durationMinutes * 60_000).toISOString(),
+            endedAt: null,
+            endReason: null,
+            spaces: state.spaces,
+          },
+          notice: null,
+        }),
+        onSessionEvent: (listener: (event: SessionEvent) => void) => {
+          emit = listener;
+          return vi.fn();
+        },
+        closeSite: vi.fn(),
+      },
+    });
+
+    render(<App />);
+    expect(await screen.findByRole('button', { name: 'Open session controls' })).toBeVisible();
+    act(() => emit?.({ type: 'navigation-blocked', destination: 'example.com' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'This destination can wait.' }),
+    ).toBeVisible();
+    expect(screen.getByText(/example\.com isn’t one of the spaces/i)).toBeVisible();
+  });
+
   it('previews the floating album player interactions', () => {
     render(<App />);
 
@@ -125,24 +169,26 @@ describe('LockIn product flow', () => {
     expect(screen.getByRole('button', { name: 'Play music' })).toBeVisible();
   });
 
-  it('walks from launcher to workspace and blocked navigation', () => {
+  it('walks from launcher to workspace and blocked navigation', async () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
     expect(screen.getByRole('main')).toHaveClass('is-starting');
+    await screen.findByRole('button', { name: 'Open session controls' });
     fireEvent.click(screen.getByRole('button', { name: 'Open ChatGPT' }));
 
-    expect(screen.getByRole('heading', { name: 'ChatGPT is ready.' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'ChatGPT is ready.' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Back' })).toBeVisible();
     expect(screen.queryByText('Spaces')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Preview blocked navigation' }));
     expect(screen.getByRole('heading', { name: 'This destination can wait.' })).toBeVisible();
   });
 
-  it('uses a deliberate hold interaction for emergency exit', () => {
+  it('uses a deliberate hold interaction for emergency exit', async () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    await screen.findByRole('button', { name: 'Open session controls' });
     fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
     fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
 
@@ -158,12 +204,12 @@ describe('LockIn product flow', () => {
     expect(screen.queryByPlaceholderText('END MY SESSION')).not.toBeInTheDocument();
   });
 
-  it('keeps the session panel minimal while the countdown ticks', () => {
+  it('keeps the session panel minimal while the countdown ticks', async () => {
     vi.useFakeTimers();
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
-    act(() => vi.advanceTimersByTime(1_000));
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
     fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
 
     const controls = screen.getByRole('dialog', { name: 'Focus session controls' });
@@ -172,17 +218,18 @@ describe('LockIn product flow', () => {
     expect(controls).not.toHaveTextContent('Everything else can wait');
   });
 
-  it('shows the polished completion summary after a deliberate exit', () => {
+  it('shows the polished completion summary after a deliberate exit', async () => {
     vi.useFakeTimers();
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
     fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
     fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Press and hold for ten seconds to end session' }),
     );
-    act(() => vi.advanceTimersByTime(10_100));
+    await act(async () => vi.advanceTimersByTimeAsync(10_100));
 
     expect(screen.getByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Start another' })).toBeVisible();

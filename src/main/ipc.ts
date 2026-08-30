@@ -4,13 +4,22 @@ import {
   entityRequestSchema,
   presetCreateRequestSchema,
   presetUpdateRequestSchema,
+  sessionResultSchema,
+  sessionStartRequestSchema,
+  siteOpenRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
 } from '../shared/contracts';
 import type { WorkspaceStore } from './workspace-store';
+import type { FocusRuntime } from './focus-runtime';
+import type { SessionStore } from './session-store';
 
-export function registerIpcHandlers(store: WorkspaceStore): void {
+export function registerIpcHandlers(
+  store: WorkspaceStore,
+  sessions: SessionStore,
+  runtime: FocusRuntime,
+): void {
   Object.values(IPC_CHANNELS).forEach((channel) => ipcMain.removeHandler(channel));
 
   ipcMain.handle(IPC_CHANNELS.workspaceGet, async () =>
@@ -46,4 +55,39 @@ export function registerIpcHandlers(store: WorkspaceStore): void {
     const request = entityRequestSchema.parse(input);
     return workspaceResultSchema.parse(await store.setActivePreset(request.id));
   });
+  ipcMain.handle(IPC_CHANNELS.sessionGet, async () =>
+    sessionResultSchema.parse(await sessions.getSession()),
+  );
+  ipcMain.handle(IPC_CHANNELS.sessionStart, async (_event, input: unknown) => {
+    const { presetId } = sessionStartRequestSchema.parse(input);
+    const workspace = (await store.getState()).state;
+    const preset = workspace.presets.find(({ id }) => id === presetId);
+    if (!preset) throw new Error('Preset not found');
+    const spacesById = new Map(workspace.spaces.map((space) => [space.id, space]));
+    const spaces = preset.spaceIds.flatMap((id) => {
+      const space = spacesById.get(id);
+      return space ? [space] : [];
+    });
+    runtime.reset();
+    const result = sessionResultSchema.parse(await sessions.start(preset, spaces));
+    runtime.enterFocus();
+    return result;
+  });
+  ipcMain.handle(IPC_CHANNELS.sessionEnd, async () => {
+    runtime.reset();
+    const result = sessionResultSchema.parse(await sessions.endEarly());
+    runtime.exitFocus();
+    return result;
+  });
+  ipcMain.handle(IPC_CHANNELS.sessionClear, async () => {
+    runtime.reset();
+    const result = sessionResultSchema.parse(await sessions.clear());
+    runtime.exitFocus();
+    return result;
+  });
+  ipcMain.handle(IPC_CHANNELS.siteOpen, async (_event, input: unknown) => {
+    const { spaceId } = siteOpenRequestSchema.parse(input);
+    await runtime.openSpace(spaceId);
+  });
+  ipcMain.handle(IPC_CHANNELS.siteClose, () => runtime.closeSpace());
 }

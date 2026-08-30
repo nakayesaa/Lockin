@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { entityIdSchema, spaceSchema } from './data-model';
+import { CURRENT_SESSION_VERSION } from './session-time';
 
-export const CURRENT_SESSION_VERSION = 1 as const;
+export { CURRENT_SESSION_VERSION } from './session-time';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 

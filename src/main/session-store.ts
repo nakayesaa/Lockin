@@ -83,6 +83,13 @@ export class SessionStore {
     });
   }
 
+  async peekSession(): Promise<SessionRecord | null> {
+    return this.exclusive(async () => {
+      await this.completeIfExpired();
+      return cloneSession(this.session);
+    });
+  }
+
   async start(preset: Preset, spaces: Space[]): Promise<SessionResult> {
     return this.exclusive(async () => {
       await this.completeIfExpired();
@@ -131,6 +138,7 @@ export class SessionStore {
 
   async clear(): Promise<SessionResult> {
     return this.exclusive(async () => {
+      await this.completeIfExpired();
       if (this.session?.endReason === null) throw new Error('End the active session first');
       await this.writeAtomic(this.filePath, null);
       this.session = null;

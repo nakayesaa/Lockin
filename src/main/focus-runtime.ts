@@ -5,7 +5,7 @@ import { createLogger } from './logger';
 import type { SessionStore } from './session-store';
 import { createSiteViewOptions, SITE_PARTITION } from './site-view-options';
 
-const BACK_GUTTER = 58;
+const BACK_GUTTER = 64;
 const configuredSessions = new WeakSet<object>();
 
 interface FocusRuntimeOptions {
@@ -26,7 +26,9 @@ export class FocusRuntime {
     const siteSession = electronSession.fromPartition(SITE_PARTITION);
     if (!configuredSessions.has(siteSession)) {
       siteSession.setPermissionCheckHandler(() => false);
-      siteSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+      siteSession.setPermissionRequestHandler((_contents, _permission, callback) =>
+        callback(false),
+      );
       siteSession.on('will-download', (event) => event.preventDefault());
       configuredSessions.add(siteSession);
     }
@@ -54,20 +56,32 @@ export class FocusRuntime {
     view.webContents.focus();
   }
 
+  enterFocus(): void {
+    if (!this.window.isFullScreen()) this.window.setFullScreen(true);
+  }
+
+  exitFocus(): void {
+    if (this.window.isFullScreen()) this.window.setFullScreen(false);
+  }
+
   closeSpace(): void {
     this.activeView?.setVisible(false);
     this.activeView = null;
-    this.window.webContents.focus();
+    if (!this.window.isDestroyed()) this.window.webContents.focus();
   }
 
-  destroy(): void {
-    this.window.off('resize', this.resize);
+  reset(): void {
+    this.closeSpace();
     for (const view of this.views.values()) {
       if (!this.window.isDestroyed()) this.window.contentView.removeChildView(view);
       if (!view.webContents.isDestroyed()) view.webContents.close();
     }
     this.views.clear();
-    this.activeView = null;
+  }
+
+  destroy(): void {
+    this.window.off('resize', this.resize);
+    this.reset();
   }
 
   private createView(space: Space, allowedSpaces: Space[]): WebContentsView {

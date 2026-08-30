@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Space } from '../../shared/data-model';
+import { focusedSessionSeconds } from '../../shared/session-time';
 import wallpaperUrl from './assets/polo-wallpaper.png';
 import {
   ArrowLeftIcon,
@@ -17,6 +18,7 @@ import { SpaceDock, type DraftSpace } from './components/SpaceDock';
 import { spaceTone } from './components/spaceAppearance';
 import { SpotifyPlayer } from './components/SpotifyPlayer';
 import { useWorkspace } from './hooks/useWorkspace';
+import { useFocusSession } from './hooks/useFocusSession';
 
 type AppScreen = 'setup' | 'launcher' | 'workspace' | 'blocked' | 'complete';
 
@@ -146,11 +148,13 @@ function Workspace({
   remaining,
   onBack,
   onBlocked,
+  connected,
 }: {
   space: Space;
   remaining: string;
   onBack: () => void;
   onBlocked: () => void;
+  connected: boolean;
 }) {
   const tone = spaceTone(space);
   return (
@@ -161,9 +165,11 @@ function Workspace({
         </span>
         <span className="immersive-back__label">Back</span>
       </button>
-      <span className="immersive-timer" aria-label={`${remaining} remaining`}>
-        {remaining}
-      </span>
+      {!connected ? (
+        <span className="immersive-timer" aria-label={`${remaining} remaining`}>
+          {remaining}
+        </span>
+      ) : null}
       <div className={`website-surface website-surface--${tone}`}>
         <div className="website-surface__ambient" aria-hidden="true" />
         <div className="website-content">
@@ -174,9 +180,11 @@ function Workspace({
             In the connected app, the real website fills this entire surface—without browser or
             LockIn chrome.
           </p>
-          <button type="button" onClick={onBlocked}>
-            Preview blocked navigation
-          </button>
+          {!connected ? (
+            <button type="button" onClick={onBlocked}>
+              Preview blocked navigation
+            </button>
+          ) : null}
         </div>
       </div>
     </section>
@@ -254,8 +262,9 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
 
 export function App() {
   const workspace = useWorkspace();
+  const focus = useFocusSession();
   const duration = workspace.activePreset.durationMinutes;
-  const spaces = workspace.activeSpaces;
+  const spaces = focus.session?.spaces ?? workspace.activeSpaces;
   const [screen, setScreen] = useState<AppScreen>('setup');
   const [activeSpace, setActiveSpace] = useState<Space | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -264,7 +273,6 @@ export function App() {
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
   const [emergencyOpen, setEmergencyOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState(duration * 60);
   const startTimer = useRef<number | null>(null);
   useEffect(
     () => () => {
@@ -273,21 +281,27 @@ export function App() {
     [],
   );
 
-  const focusActive = screen !== 'setup' && screen !== 'complete';
-  const remaining = formatClock(remainingSeconds);
-  const remainingPercent = (remainingSeconds / (duration * 60)) * 100;
+  const currentScreen: AppScreen = focus.blockedDestination
+    ? 'blocked'
+    : focus.session?.endReason
+      ? 'complete'
+      : focus.session && screen === 'setup'
+        ? 'launcher'
+        : screen;
+  const focusActive = focus.session?.endReason === null;
+  const remaining = formatClock(focus.remainingSeconds);
+  const remainingPercent = focus.session
+    ? (focus.remainingSeconds / focus.session.durationSeconds) * 100
+    : 0;
+  const sessionEndReason = focus.session?.endReason;
+  const closeFocusedSpace = focus.closeSpace;
 
   useEffect(() => {
-    if (!focusActive) return;
-    const timer = window.setInterval(
-      () => setRemainingSeconds((current) => Math.max(0, current - 1)),
-      1_000,
-    );
-    return () => window.clearInterval(timer);
-  }, [focusActive]);
+    if (sessionEndReason) void closeFocusedSpace();
+  }, [closeFocusedSpace, sessionEndReason]);
 
   const openSpace = (space: Space) => {
-    if (screen === 'setup') {
+    if (currentScreen === 'setup') {
       setDraft({
         name: space.name,
         url: space.startUrl,
@@ -302,6 +316,12 @@ export function App() {
     }
     setActiveSpace(space);
     setScreen('workspace');
+    void focus.openSpace(space.id).then((opened) => {
+      if (!opened) {
+        setActiveSpace(null);
+        setScreen('launcher');
+      }
+    });
   };
 
   const saveSpace = async () => {
@@ -320,20 +340,25 @@ export function App() {
     }
   };
 
-  const finishSession = () => {
+  const finishSession = async () => {
+    if (!(await focus.end())) return;
     setEmergencyOpen(false);
     setSessionMenuOpen(false);
     setActiveSpace(null);
     setScreen('complete');
   };
 
-  const startSession = () => {
-    if (isStarting) return;
+  const startSession = async () => {
+    if (isStarting || focus.busy) return;
     setEditorOpen(false);
     setEditingSpaceId(null);
     setSessionMenuOpen(false);
-    setRemainingSeconds(duration * 60);
+    setActiveSpace(null);
     setIsStarting(true);
+    if (!(await focus.start(workspace.activePreset, workspace.activeSpaces))) {
+      setIsStarting(false);
+      return;
+    }
     setScreen('launcher');
     startTimer.current = window.setTimeout(() => {
       setIsStarting(false);
@@ -346,13 +371,15 @@ export function App() {
       className={`app-shell ${isStarting ? 'is-starting' : ''}`}
       style={{ '--wallpaper': `url(${wallpaperUrl})` } as CSSProperties}
     >
-      {screen !== 'workspace' ? (
-        <SystemChrome remaining={focusActive && screen === 'launcher' ? remaining : undefined} />
+      {currentScreen !== 'workspace' ? (
+        <SystemChrome
+          remaining={focusActive && currentScreen === 'launcher' ? remaining : undefined}
+        />
       ) : null}
 
-      {screen === 'setup' || isStarting ? (
+      {currentScreen === 'setup' || isStarting ? (
         <section className={`setup-screen ${isStarting ? 'setup-screen--departing' : ''}`}>
-          {screen === 'setup' ? (
+          {currentScreen === 'setup' ? (
             <PresetControl
               presets={workspace.state.presets}
               spaces={workspace.state.spaces}
@@ -380,12 +407,12 @@ export function App() {
             onDurationChange={(value) => void workspace.setDuration(value)}
             onStart={startSession}
             starting={isStarting}
-            disabled={workspace.loading || workspace.saving}
+            disabled={workspace.loading || workspace.saving || focus.loading || focus.busy}
           />
         </section>
       ) : null}
 
-      {screen === 'launcher' ? (
+      {currentScreen === 'launcher' ? (
         <section className="launcher-screen">
           <div className="launcher-message" aria-hidden="true">
             <span>Stay with the work.</span>
@@ -424,16 +451,21 @@ export function App() {
         </section>
       ) : null}
 
-      {screen === 'workspace' && activeSpace ? (
+      {currentScreen === 'workspace' && activeSpace ? (
         <Workspace
           space={activeSpace}
           remaining={remaining}
-          onBack={() => setScreen('launcher')}
+          connected={Boolean(window.lockIn?.openSite)}
+          onBack={() => {
+            void focus.closeSpace();
+            setActiveSpace(null);
+            setScreen('launcher');
+          }}
           onBlocked={() => setScreen('blocked')}
         />
       ) : null}
 
-      {screen === 'blocked' ? (
+      {currentScreen === 'blocked' ? (
         <section className="centered-state">
           <div className="state-card">
             <div className="dialog-icon">
@@ -441,8 +473,19 @@ export function App() {
             </div>
             <p className="eyebrow">Outside your session</p>
             <h2>This destination can wait.</h2>
-            <p>example.com isn’t one of the spaces you chose for this focus session.</p>
-            <button className="primary-button" type="button" onClick={() => setScreen('workspace')}>
+            <p>
+              {focus.blockedDestination ?? 'This website'} isn’t one of the spaces you chose for
+              this focus session.
+            </p>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => {
+                focus.dismissBlocked();
+                setActiveSpace(null);
+                setScreen('launcher');
+              }}
+            >
               <ArrowLeftIcon />
               Back to work
             </button>
@@ -450,7 +493,7 @@ export function App() {
         </section>
       ) : null}
 
-      {screen === 'complete' ? (
+      {currentScreen === 'complete' ? (
         <section className="centered-state centered-state--complete">
           <div className="completion-card">
             <div className="completion-mark" aria-hidden="true">
@@ -464,7 +507,9 @@ export function App() {
             <p className="completion-lead">You gave one thing your full attention.</p>
             <div className="completion-summary">
               <div>
-                <strong>{duration}:00</strong>
+                <strong>
+                  {focus.session ? formatClock(focusedSessionSeconds(focus.session)) : '00:00'}
+                </strong>
                 <span>focused</span>
               </div>
               <span className="completion-summary__divider" aria-hidden="true" />
@@ -477,17 +522,18 @@ export function App() {
               <button
                 type="button"
                 className="completion-button completion-button--quiet"
-                onClick={() => setScreen('setup')}
+                onClick={() => {
+                  void focus.clear().then((cleared) => {
+                    if (cleared) setScreen('setup');
+                  });
+                }}
               >
                 Done
               </button>
               <button
                 type="button"
                 className="completion-button completion-button--primary"
-                onClick={() => {
-                  setRemainingSeconds(duration * 60);
-                  setScreen('launcher');
-                }}
+                onClick={() => void startSession()}
               >
                 Start another
               </button>
@@ -496,13 +542,13 @@ export function App() {
         </section>
       ) : null}
 
-      {screen === 'setup' || screen === 'launcher' ? (
+      {currentScreen === 'setup' || currentScreen === 'launcher' ? (
         <SpaceDock
           spaces={spaces}
-          allowAdding={screen === 'setup'}
+          allowAdding={currentScreen === 'setup'}
           editing={editingSpaceId !== null}
           activeEditor={editorOpen}
-          saving={workspace.saving || workspace.loading}
+          saving={workspace.saving || workspace.loading || focus.busy}
           draft={draft}
           onDraftChange={setDraft}
           onOpen={openSpace}
@@ -533,19 +579,29 @@ export function App() {
         />
       ) : null}
 
-      {workspace.notice ? (
+      {(focus.notice ?? workspace.notice) ? (
         <div className="app-notice" role="status">
-          <span>{workspace.notice}</span>
-          <button type="button" aria-label="Dismiss message" onClick={workspace.dismissNotice}>
+          <span>{focus.notice ?? workspace.notice}</span>
+          <button
+            type="button"
+            aria-label="Dismiss message"
+            onClick={() => {
+              focus.dismissNotice();
+              workspace.dismissNotice();
+            }}
+          >
             ×
           </button>
         </div>
       ) : null}
 
       {emergencyOpen ? (
-        <EmergencyExit onCancel={() => setEmergencyOpen(false)} onExit={finishSession} />
+        <EmergencyExit
+          onCancel={() => setEmergencyOpen(false)}
+          onExit={() => void finishSession()}
+        />
       ) : null}
-      {screen === 'setup' || screen === 'launcher' ? <SpotifyPlayer /> : null}
+      {currentScreen === 'setup' || currentScreen === 'launcher' ? <SpotifyPlayer /> : null}
     </main>
   );
 }

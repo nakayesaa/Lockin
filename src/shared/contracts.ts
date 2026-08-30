@@ -8,6 +8,7 @@ import {
   type PresetInput,
   type SpaceInput,
 } from './data-model';
+import { sessionRecordSchema, type SessionRecord } from './session-model';
 
 export const IPC_CHANNELS = {
   workspaceGet: 'lockin:workspace:get',
@@ -19,6 +20,13 @@ export const IPC_CHANNELS = {
   presetDuplicate: 'lockin:preset:duplicate',
   presetDelete: 'lockin:preset:delete',
   presetSetActive: 'lockin:preset:set-active',
+  sessionGet: 'lockin:session:get',
+  sessionStart: 'lockin:session:start',
+  sessionEnd: 'lockin:session:end',
+  sessionClear: 'lockin:session:clear',
+  siteOpen: 'lockin:site:open',
+  siteClose: 'lockin:site:close',
+  sessionEvent: 'lockin:session:event',
 } as const;
 
 export const workspaceResultSchema = z
@@ -37,8 +45,28 @@ export const presetCreateRequestSchema = presetInputSchema;
 export const presetUpdateRequestSchema = z
   .object({ id: entityIdSchema, input: presetInputSchema })
   .strict();
+export const sessionStartRequestSchema = z.object({ presetId: entityIdSchema }).strict();
+export const siteOpenRequestSchema = z.object({ spaceId: entityIdSchema }).strict();
+
+export const sessionResultSchema = z
+  .object({
+    session: sessionRecordSchema.nullable(),
+    notice: z.string().min(1).nullable(),
+  })
+  .strict();
+
+export const sessionEventSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('navigation-blocked'),
+      destination: z.string().min(1).max(253),
+    })
+    .strict(),
+]);
 
 export type WorkspaceResult = z.infer<typeof workspaceResultSchema>;
+export type SessionResult = z.infer<typeof sessionResultSchema>;
+export type SessionEvent = z.infer<typeof sessionEventSchema>;
 
 export interface LockInApi {
   getWorkspace(): Promise<WorkspaceResult>;
@@ -50,6 +78,13 @@ export interface LockInApi {
   duplicatePreset(id: string): Promise<WorkspaceResult>;
   deletePreset(id: string): Promise<WorkspaceResult>;
   setActivePreset(id: string): Promise<WorkspaceResult>;
+  getSession(): Promise<SessionResult>;
+  startSession(presetId: string): Promise<SessionResult>;
+  endSession(): Promise<SessionResult>;
+  clearSession(): Promise<SessionResult>;
+  openSite(spaceId: string): Promise<void>;
+  closeSite(): Promise<void>;
+  onSessionEvent(listener: (event: SessionEvent) => void): () => void;
 }
 
-export type { PersistedState };
+export type { PersistedState, SessionRecord };

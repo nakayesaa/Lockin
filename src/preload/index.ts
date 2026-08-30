@@ -1,4 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { createLockInApi } from './api';
 
-contextBridge.exposeInMainWorld('lockIn', createLockInApi(ipcRenderer.invoke.bind(ipcRenderer)));
+contextBridge.exposeInMainWorld('lockIn', createLockInApi(ipcRenderer));

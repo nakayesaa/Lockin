@@ -6,9 +6,12 @@ import { createWindowOptions } from './window-options';
 const logger = createLogger('window-controller');
 const allowedExternalProtocols = new Set(['https:']);
 
-export async function createMainWindow(): Promise<BrowserWindow> {
+export async function createMainWindow(
+  beforeLoad?: (window: BrowserWindow) => void,
+): Promise<BrowserWindow> {
   const preloadPath = join(__dirname, '../preload/index.js');
   const window = new BrowserWindow(createWindowOptions(preloadPath));
+  beforeLoad?.(window);
 
   window.webContents.setWindowOpenHandler(({ url }) => {
     try {

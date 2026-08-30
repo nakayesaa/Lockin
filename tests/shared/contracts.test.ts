@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
   entityRequestSchema,
   presetUpdateRequestSchema,
+  sessionEventSchema,
+  sessionStartRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
 } from '../../src/shared/contracts';
@@ -26,6 +28,19 @@ describe('shared IPC contracts', () => {
         id: 'preset',
         input: { name: 'Empty', durationMinutes: 0, spaceIds: [] },
       }),
+    ).toThrow();
+  });
+
+  it('validates session commands and events', () => {
+    expect(sessionStartRequestSchema.parse({ presetId: 'deep-work' })).toEqual({
+      presetId: 'deep-work',
+    });
+    expect(() => sessionStartRequestSchema.parse({ presetId: '../unsafe' })).toThrow();
+    expect(
+      sessionEventSchema.parse({ type: 'navigation-blocked', destination: 'example.com' }),
+    ).toEqual({ type: 'navigation-blocked', destination: 'example.com' });
+    expect(() =>
+      sessionEventSchema.parse({ type: 'navigation-blocked', destination: '' }),
     ).toThrow();
   });
 });
