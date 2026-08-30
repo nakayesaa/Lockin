@@ -320,7 +320,7 @@ function WebsiteDataDialog({
 
   return (
     <div
-      className="modal-backdrop"
+      className="modal-backdrop website-data-backdrop"
       role="dialog"
       aria-modal="true"
       aria-labelledby="website-data-heading"
@@ -330,7 +330,7 @@ function WebsiteDataDialog({
     >
       <section className="website-data-dialog">
         <span className="website-data-dialog__icon" aria-hidden="true">
-          <ShieldIcon />
+          <TrashIcon />
         </span>
         <p className="eyebrow">Private workspace</p>
         <h2 id="website-data-heading">Clear website data?</h2>
@@ -602,7 +602,6 @@ function LockInApp() {
         <section className="centered-state centered-state--complete">
           <div className="completion-card">
             <div className="completion-mark" aria-hidden="true">
-              <span className="completion-mark__halo" />
               <span className="completion-mark__check">
                 <CheckIcon />
               </span>
@@ -633,7 +632,7 @@ function LockInApp() {
                   });
                 }}
               >
-                Done
+                Finish
               </button>
               <button
                 type="button"

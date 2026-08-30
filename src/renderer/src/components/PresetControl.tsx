@@ -63,8 +63,8 @@ export function PresetControl({
         <section className="preset-menu" role="dialog" aria-label="Focus presets">
           <header className="preset-menu__header">
             <div>
-              <p className="eyebrow">Presets</p>
-              <strong>Your focus modes</strong>
+              <p className="eyebrow">Workspace</p>
+              <strong>Focus presets</strong>
             </div>
             <button type="button" aria-label="Create preset" disabled={saving} onClick={onCreate}>
               <PlusIcon />

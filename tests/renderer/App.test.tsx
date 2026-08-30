@@ -269,6 +269,7 @@ describe('LockIn product flow', () => {
     await act(async () => vi.advanceTimersByTimeAsync(10_100));
 
     expect(screen.getByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Start another' })).toBeVisible();
   });
 });
