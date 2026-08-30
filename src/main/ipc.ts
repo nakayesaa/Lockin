@@ -89,5 +89,9 @@ export function registerIpcHandlers(
     const { spaceId } = siteOpenRequestSchema.parse(input);
     await runtime.openSpace(spaceId);
   });
-  ipcMain.handle(IPC_CHANNELS.siteClose, () => runtime.closeSpace());
+  ipcMain.handle(IPC_CHANNELS.siteClose, async () => {
+    const session = await sessions.peekSession();
+    if (!session || session.endReason !== null) runtime.reset();
+    else runtime.closeSpace();
+  });
 }

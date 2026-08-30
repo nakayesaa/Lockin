@@ -11,10 +11,12 @@ The current interactive prototype includes:
 - the animated transition into focus mode;
 - launcher, immersive website, blocked-navigation, and completion states;
 - a minimal active-timer panel and ten-second hold-to-end control;
+- restart-safe focus sessions with absolute-deadline timers;
+- real allowlisted websites in isolated, fullscreen Electron views;
 - a compact floating album-player prototype; and
 - a browser-only design mode with hot reload.
 
-Spaces and focus presets are validated and saved locally by the Electron main process. Timer updates, embedded website content, and album playback remain interactive previews while their application services are being connected.
+Spaces, presets, active sessions, timer recovery, and controlled website navigation are validated and managed by the Electron main process. Album playback remains an interactive preview until its Spotify service is connected.
 
 ## Requirements
 
@@ -75,7 +77,9 @@ The renderer cannot access Node.js, Electron, the filesystem, or the shell direc
 
 Workspace data is versioned and written atomically beneath Electron's `userData` directory. Invalid data is quarantined and replaced with safe defaults; old supported versions are migrated before use.
 
-Remote websites will use separate sandboxed `WebContentsView` instances in later phases and will never receive the LockIn preload bridge.
+Remote websites use separate sandboxed `WebContentsView` instances with a persistent site partition for login cookies. They never receive the LockIn preload bridge, Node.js access, permissions, downloads, pop-up windows, or developer tools. Main-frame navigations and redirects are checked against the active session snapshot before they are allowed.
+
+Active sessions are written atomically to a separate versioned file. A restarted app resumes the same deadline and allowed-space snapshot; expired sessions complete at their original deadline rather than restarting the timer.
 
 ## Tests
 
@@ -84,6 +88,8 @@ The production suite currently covers:
 - shared contract validation;
 - URL normalization and hostname matching;
 - atomic persistence, migrations, corruption recovery, and Space/Preset operations;
+- active-session persistence, restart recovery, deadline completion, and early ending;
+- secure embedded-site options and session navigation matching;
 - secure `BrowserWindow` defaults;
 - preload channel isolation and validation; and
 - the complete renderer product flow.

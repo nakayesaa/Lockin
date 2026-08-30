@@ -89,6 +89,23 @@ describe('SessionStore', () => {
     expect(JSON.parse(await readFile(filePath, 'utf8'))).toBeNull();
   });
 
+  it('rejects reordered preset spaces and clamps a backwards system clock', async () => {
+    const store = sessionStore();
+    await store.initialize();
+    const workspace = createDefaultWorkspace();
+    const preset = workspace.presets[0]!;
+    const byId = new Map(workspace.spaces.map((space) => [space.id, space]));
+    const spaces = preset.spaceIds.map((id) => byId.get(id)!);
+
+    await expect(store.start(preset, [...spaces].reverse())).rejects.toThrow(
+      'Preset spaces are incomplete',
+    );
+    await store.start(preset, spaces);
+    now = new Date('2026-08-30T00:55:00.000Z');
+
+    expect((await store.endEarly()).session?.endedAt).toBe('2026-08-30T01:00:00.000Z');
+  });
+
   it('quarantines corrupt data instead of resuming an unsafe session', async () => {
     await writeFile(filePath, '{bad session');
     const result = await sessionStore().initialize();

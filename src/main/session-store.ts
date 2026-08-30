@@ -94,7 +94,9 @@ export class SessionStore {
     return this.exclusive(async () => {
       await this.completeIfExpired();
       if (this.session?.endReason === null) throw new Error('A focus session is already active');
-      if (spaces.length !== preset.spaceIds.length) throw new Error('Preset spaces are incomplete');
+      if (preset.spaceIds.some((id, index) => spaces[index]?.id !== id)) {
+        throw new Error('Preset spaces are incomplete');
+      }
 
       const startedAt = this.now();
       const durationSeconds = preset.durationMinutes * 60;
@@ -123,7 +125,10 @@ export class SessionStore {
       if (this.session.endReason !== null) return this.result();
 
       const endedAt = new Date(
-        Math.min(this.now().getTime(), Date.parse(this.session.endsAt)),
+        Math.max(
+          Date.parse(this.session.startedAt),
+          Math.min(this.now().getTime(), Date.parse(this.session.endsAt)),
+        ),
       ).toISOString();
       const next = sessionRecordSchema.parse({
         ...this.session,

@@ -4,7 +4,10 @@ export const CURRENT_SESSION_VERSION = 1 as const;
 
 export function remainingSessionSeconds(session: SessionRecord, now = Date.now()): number {
   if (session.endReason !== null) return 0;
-  return Math.max(0, Math.ceil((Date.parse(session.endsAt) - now) / 1_000));
+  return Math.min(
+    session.durationSeconds,
+    Math.max(0, Math.ceil((Date.parse(session.endsAt) - now) / 1_000)),
+  );
 }
 
 export function focusedSessionSeconds(session: SessionRecord): number {
