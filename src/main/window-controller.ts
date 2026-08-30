@@ -1,6 +1,7 @@
 import { BrowserWindow, shell } from 'electron';
 import { join } from 'node:path';
 import { createLogger } from './logger';
+import { getPreloadPath } from './preload-path';
 import { createWindowOptions } from './window-options';
 
 const logger = createLogger('window-controller');
@@ -9,7 +10,7 @@ const allowedExternalProtocols = new Set(['https:']);
 export async function createMainWindow(
   beforeLoad?: (window: BrowserWindow) => void,
 ): Promise<BrowserWindow> {
-  const preloadPath = join(__dirname, '../preload/index.js');
+  const preloadPath = getPreloadPath(__dirname);
   const window = new BrowserWindow(createWindowOptions(preloadPath));
   beforeLoad?.(window);
 
