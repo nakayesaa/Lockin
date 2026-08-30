@@ -39,8 +39,28 @@ describe('shared IPC contracts', () => {
     expect(
       sessionEventSchema.parse({ type: 'navigation-blocked', destination: 'example.com' }),
     ).toEqual({ type: 'navigation-blocked', destination: 'example.com' });
+    expect(
+      sessionEventSchema.parse({
+        type: 'site-state-changed',
+        status: 'failed',
+        spaceId: 'chatgpt',
+        message: 'The website stopped unexpectedly.',
+      }),
+    ).toEqual({
+      type: 'site-state-changed',
+      status: 'failed',
+      spaceId: 'chatgpt',
+      message: 'The website stopped unexpectedly.',
+    });
     expect(() =>
       sessionEventSchema.parse({ type: 'navigation-blocked', destination: '' }),
+    ).toThrow();
+    expect(() =>
+      sessionEventSchema.parse({
+        type: 'site-state-changed',
+        status: 'failed',
+        spaceId: 'chatgpt',
+      }),
     ).toThrow();
   });
 });

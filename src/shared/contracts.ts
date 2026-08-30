@@ -55,11 +55,26 @@ export const sessionResultSchema = z
   })
   .strict();
 
-export const sessionEventSchema = z.discriminatedUnion('type', [
+export const sessionEventSchema = z.union([
   z
     .object({
       type: z.literal('navigation-blocked'),
       destination: z.string().min(1).max(253),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('site-state-changed'),
+      status: z.enum(['loading', 'ready']),
+      spaceId: entityIdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('site-state-changed'),
+      status: z.literal('failed'),
+      spaceId: entityIdSchema,
+      message: z.string().min(1).max(200),
     })
     .strict(),
 ]);

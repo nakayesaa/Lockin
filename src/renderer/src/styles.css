@@ -1306,6 +1306,28 @@ input:focus-visible {
   font-weight: 650;
   box-shadow: 0 6px 18px rgba(20, 42, 64, 0.06);
 }
+.website-runtime-state {
+  background: rgba(247, 251, 255, 0.74);
+  backdrop-filter: blur(24px) saturate(140%);
+}
+.website-loader {
+  width: 34px;
+  height: 34px;
+  margin-bottom: 22px;
+  border: 2px solid rgba(8, 124, 255, 0.14);
+  border-top-color: #087cff;
+  border-radius: 50%;
+  animation: site-loading 800ms linear infinite;
+}
+.website-runtime-actions {
+  display: flex;
+  gap: 8px;
+}
+.website-runtime-actions button.is-primary {
+  color: white;
+  border-color: #087cff;
+  background: #087cff;
+}
 
 .centered-state {
   position: absolute;
@@ -1782,6 +1804,12 @@ input:focus-visible {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes site-loading {
+  to {
+    transform: rotate(360deg);
   }
 }
 @keyframes completion-in {

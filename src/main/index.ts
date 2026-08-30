@@ -43,6 +43,12 @@ app.whenReady().then(async () => {
             destination,
           });
         },
+        onSiteStateChanged: (state) => {
+          window.webContents.send(IPC_CHANNELS.sessionEvent, {
+            type: 'site-state-changed',
+            ...state,
+          });
+        },
       });
       registerIpcHandlers(workspaceStore, sessionStore, runtime);
       void sessionStore.peekSession().then((session) => {

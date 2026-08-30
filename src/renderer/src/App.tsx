@@ -18,7 +18,7 @@ import { SpaceDock, type DraftSpace } from './components/SpaceDock';
 import { spaceTone } from './components/spaceAppearance';
 import { SpotifyPlayer } from './components/SpotifyPlayer';
 import { useWorkspace } from './hooks/useWorkspace';
-import { useFocusSession } from './hooks/useFocusSession';
+import { useFocusSession, type SiteState } from './hooks/useFocusSession';
 
 type AppScreen = 'setup' | 'launcher' | 'workspace' | 'blocked' | 'complete';
 
@@ -148,17 +148,23 @@ function Workspace({
   remaining,
   onBack,
   onBlocked,
+  onRetry,
   connected,
+  siteState,
 }: {
   space: Space;
   remaining: string;
   onBack: () => void;
   onBlocked: () => void;
+  onRetry: () => void;
   connected: boolean;
+  siteState: SiteState;
 }) {
   const tone = spaceTone(space);
+  const failed = siteState.status === 'failed' && siteState.spaceId === space.id;
+  const loading = siteState.status === 'loading' && siteState.spaceId === space.id;
   return (
-    <section className="workspace" aria-label={`${space.name} website preview`}>
+    <section className="workspace" aria-label={`${space.name} website workspace`}>
       <button type="button" className="immersive-back" onClick={onBack}>
         <span className="immersive-back__icon">
           <ArrowLeftIcon />
@@ -172,20 +178,49 @@ function Workspace({
       ) : null}
       <div className={`website-surface website-surface--${tone}`}>
         <div className="website-surface__ambient" aria-hidden="true" />
-        <div className="website-content">
-          <span className={`preview-emblem preview-emblem--${tone}`}>{space.symbol ?? '◌'}</span>
-          <p className="eyebrow">Immersive website preview</p>
-          <h2>{space.name} is ready.</h2>
-          <p>
-            In the connected app, the real website fills this entire surface—without browser or
-            LockIn chrome.
-          </p>
-          {!connected ? (
+        {connected ? (
+          <div
+            className="website-content website-runtime-state"
+            role={failed ? 'alert' : 'status'}
+            aria-live="polite"
+          >
+            {loading ? <span className="website-loader" aria-hidden="true" /> : null}
+            {failed ? (
+              <>
+                <span className={`preview-emblem preview-emblem--${tone}`} aria-hidden="true">
+                  {space.symbol ?? '◌'}
+                </span>
+                <p className="eyebrow">Connection interrupted</p>
+                <h2>Couldn’t open {space.name}.</h2>
+                <p>{siteState.message}</p>
+                <div className="website-runtime-actions">
+                  <button type="button" onClick={onBack}>
+                    Back to spaces
+                  </button>
+                  <button type="button" className="is-primary" onClick={onRetry}>
+                    Try again
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="eyebrow">Secure workspace</p>
+                <h2>Opening {space.name}…</h2>
+                <p>The site will appear as soon as its private workspace is ready.</p>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="website-content">
+            <span className={`preview-emblem preview-emblem--${tone}`}>{space.symbol ?? '◌'}</span>
+            <p className="eyebrow">Immersive website preview</p>
+            <h2>{space.name} is ready.</h2>
+            <p>The real Electron app fills this surface with the selected website.</p>
             <button type="button" onClick={onBlocked}>
               Preview blocked navigation
             </button>
-          ) : null}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -456,12 +491,14 @@ export function App() {
           space={activeSpace}
           remaining={remaining}
           connected={Boolean(window.lockIn?.openSite)}
+          siteState={focus.siteState}
           onBack={() => {
             void focus.closeSpace();
             setActiveSpace(null);
             setScreen('launcher');
           }}
           onBlocked={() => setScreen('blocked')}
+          onRetry={() => void focus.openSpace(activeSpace.id)}
         />
       ) : null}
 

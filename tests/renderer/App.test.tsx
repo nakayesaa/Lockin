@@ -120,6 +120,7 @@ describe('LockIn product flow', () => {
     const state = createDefaultWorkspace();
     const preset = state.presets[0]!;
     const startedAt = new Date();
+    const openSite = vi.fn().mockResolvedValue(undefined);
     let emit: ((event: SessionEvent) => void) | undefined;
     Object.defineProperty(window, 'lockIn', {
       configurable: true,
@@ -140,6 +141,7 @@ describe('LockIn product flow', () => {
           },
           notice: null,
         }),
+        openSite,
         onSessionEvent: (listener: (event: SessionEvent) => void) => {
           emit = listener;
           return vi.fn();
@@ -150,6 +152,20 @@ describe('LockIn product flow', () => {
 
     render(<App />);
     expect(await screen.findByRole('button', { name: 'Open session controls' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Open ChatGPT' }));
+    expect(await screen.findByRole('heading', { name: 'Opening ChatGPT…' })).toBeVisible();
+    act(() =>
+      emit?.({
+        type: 'site-state-changed',
+        status: 'failed',
+        spaceId: 'chatgpt',
+        message: 'The website stopped unexpectedly.',
+      }),
+    );
+    expect(await screen.findByRole('heading', { name: 'Couldn’t open ChatGPT.' })).toBeVisible();
+    expect(screen.getByText('The website stopped unexpectedly.')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(openSite).toHaveBeenCalledTimes(2));
     act(() => emit?.({ type: 'navigation-blocked', destination: 'example.com' }));
 
     expect(

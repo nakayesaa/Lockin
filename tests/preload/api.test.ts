@@ -64,6 +64,12 @@ describe('preload API', () => {
       type: 'navigation-blocked',
       destination: 'example.com',
     });
+    wrapped({}, { type: 'site-state-changed', status: 'ready', spaceId: 'chatgpt' });
+    expect(listener).toHaveBeenLastCalledWith({
+      type: 'site-state-changed',
+      status: 'ready',
+      spaceId: 'chatgpt',
+    });
     unsubscribe();
     expect(bridge.removeListener).toHaveBeenCalledWith(IPC_CHANNELS.sessionEvent, wrapped);
   });

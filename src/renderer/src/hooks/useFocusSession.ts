@@ -11,6 +11,7 @@ export interface FocusSessionController {
   readonly busy: boolean;
   readonly notice: string | null;
   readonly blockedDestination: string | null;
+  readonly siteState: SiteState;
   start(preset: Preset, spaces: Space[]): Promise<boolean>;
   end(): Promise<boolean>;
   clear(): Promise<boolean>;
@@ -19,6 +20,11 @@ export interface FocusSessionController {
   dismissNotice(): void;
   dismissBlocked(): void;
 }
+
+export type SiteState =
+  | { readonly status: 'idle' }
+  | { readonly status: 'loading' | 'ready'; readonly spaceId: string }
+  | { readonly status: 'failed'; readonly spaceId: string; readonly message: string };
 
 function previewSession(preset: Preset, spaces: Space[]): SessionRecord {
   const startedAt = new Date();
@@ -44,6 +50,7 @@ export function useFocusSession(): FocusSessionController {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [blockedDestination, setBlockedDestination] = useState<string | null>(null);
+  const [siteState, setSiteState] = useState<SiteState>({ status: 'idle' });
 
   const publish = useCallback((next: SessionRecord | null) => {
     setSession(next);
@@ -55,8 +62,14 @@ export function useFocusSession(): FocusSessionController {
     if (!api?.getSession) return;
     let mounted = true;
     const unsubscribe = api.onSessionEvent?.((event) => {
-      if (mounted && event.type === 'navigation-blocked') {
+      if (!mounted) return;
+      if (event.type === 'navigation-blocked') {
+        setSiteState({ status: 'idle' });
         setBlockedDestination(event.destination);
+      } else if (event.status === 'failed') {
+        setSiteState({ status: event.status, spaceId: event.spaceId, message: event.message });
+      } else {
+        setSiteState({ status: event.status, spaceId: event.spaceId });
       }
     });
     api
@@ -143,10 +156,14 @@ export function useFocusSession(): FocusSessionController {
   );
 
   const openSpace = useCallback(async (id: string) => {
+    setSiteState({ status: 'loading', spaceId: id });
     try {
-      await window.lockIn?.openSite?.(id);
+      const openSite = window.lockIn?.openSite;
+      if (openSite) await openSite(id);
+      else setSiteState({ status: 'ready', spaceId: id });
       return true;
     } catch (error) {
+      setSiteState({ status: 'idle' });
       setNotice(errorMessage(error));
       return false;
     }
@@ -157,6 +174,8 @@ export function useFocusSession(): FocusSessionController {
       await window.lockIn?.closeSite?.();
     } catch (error) {
       setNotice(errorMessage(error));
+    } finally {
+      setSiteState({ status: 'idle' });
     }
   }, []);
 
@@ -167,6 +186,7 @@ export function useFocusSession(): FocusSessionController {
     busy,
     notice,
     blockedDestination,
+    siteState,
     start,
     end,
     clear,

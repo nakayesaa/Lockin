@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, session as electronSession } from 'electron';
+import { BrowserWindow, WebContentsView, screen, session as electronSession } from 'electron';
 import type { Space } from '../shared/data-model';
 import { findAllowedSpaceForUrl } from '../shared/website-rules';
 import { createLogger } from './logger';
@@ -10,11 +10,15 @@ const configuredSessions = new WeakSet<object>();
 
 interface FocusRuntimeOptions {
   readonly onNavigationBlocked: (url: string) => void;
+  readonly onSiteStateChanged: (state: SiteState) => void;
 }
 
+export type SiteState =
+  | { readonly status: 'loading' | 'ready'; readonly spaceId: string }
+  | { readonly status: 'failed'; readonly spaceId: string; readonly message: string };
+
 export class FocusRuntime {
-  private readonly views = new Map<string, WebContentsView>();
-  private activeView: WebContentsView | null = null;
+  private siteView: WebContentsView | null = null;
   private readonly logger = createLogger('focus-runtime');
   private readonly resize: () => void;
 
@@ -35,6 +39,9 @@ export class FocusRuntime {
 
     this.resize = () => this.layoutActiveView();
     window.on('resize', this.resize);
+    window.on('enter-full-screen', this.resize);
+    window.on('leave-full-screen', this.resize);
+    screen.on('display-metrics-changed', this.resize);
     window.once('closed', () => this.destroy());
   }
 
@@ -44,16 +51,13 @@ export class FocusRuntime {
     const space = session.spaces.find(({ id }) => id === spaceId);
     if (!space) throw new Error('This space is not allowed in the active session');
 
-    const view = this.views.get(space.id) ?? this.createView(space, session.spaces);
-    this.views.set(space.id, view);
-    if (this.activeView && this.activeView !== view) this.activeView.setVisible(false);
+    this.closeSpace();
+    const view = this.createView(space, session.spaces);
+    this.siteView = view;
     this.window.contentView.addChildView(view);
-    view.setVisible(true);
-    this.activeView = view;
+    view.setVisible(false);
     this.layoutActiveView();
-
-    if (!view.webContents.getURL()) await view.webContents.loadURL(space.startUrl);
-    view.webContents.focus();
+    await this.load(view, space.id, space.startUrl);
   }
 
   enterFocus(): void {
@@ -65,22 +69,19 @@ export class FocusRuntime {
   }
 
   closeSpace(): void {
-    this.activeView?.setVisible(false);
-    this.activeView = null;
+    this.disposeSiteView();
     if (!this.window.isDestroyed()) this.window.webContents.focus();
   }
 
   reset(): void {
     this.closeSpace();
-    for (const view of this.views.values()) {
-      if (!this.window.isDestroyed()) this.window.contentView.removeChildView(view);
-      if (!view.webContents.isDestroyed()) view.webContents.close();
-    }
-    this.views.clear();
   }
 
   destroy(): void {
     this.window.off('resize', this.resize);
+    this.window.off('enter-full-screen', this.resize);
+    this.window.off('leave-full-screen', this.resize);
+    screen.off('display-metrics-changed', this.resize);
     this.reset();
   }
 
@@ -97,21 +98,45 @@ export class FocusRuntime {
     webContents.on('will-navigate', (details) => guard(details));
     webContents.on('will-redirect', (details) => guard(details));
     webContents.setWindowOpenHandler(({ url }) => {
-      if (findAllowedSpaceForUrl(url, allowedSpaces)) void webContents.loadURL(url);
+      if (findAllowedSpaceForUrl(url, allowedSpaces)) void this.load(view, space.id, url);
       else this.block(url);
       return { action: 'deny' };
     });
     webContents.on('render-process-gone', (_event, details) => {
       this.logger.warn('Site renderer stopped', { spaceId: space.id, reason: details.reason });
+      this.fail(view, space.id, 'The website stopped unexpectedly.');
     });
+    webContents.on('unresponsive', () =>
+      this.fail(view, space.id, 'The website is not responding.'),
+    );
 
     return view;
   }
 
+  private async load(view: WebContentsView, spaceId: string, url: string): Promise<void> {
+    if (this.siteView !== view) return;
+    view.setVisible(false);
+    this.options.onSiteStateChanged({ status: 'loading', spaceId });
+    try {
+      await view.webContents.loadURL(url);
+      if (this.siteView !== view) return;
+      view.setVisible(true);
+      view.webContents.focus();
+      this.options.onSiteStateChanged({ status: 'ready', spaceId });
+    } catch (error) {
+      if (this.siteView !== view) return;
+      this.logger.warn('Website failed to load', {
+        spaceId,
+        message: error instanceof Error ? error.message : 'Unknown load error',
+      });
+      this.fail(view, spaceId, 'The website could not be loaded. Check your connection.');
+    }
+  }
+
   private layoutActiveView(): void {
-    if (!this.activeView) return;
+    if (!this.siteView) return;
     const [width = 0, height = 0] = this.window.getContentSize();
-    this.activeView.setBounds({
+    this.siteView.setBounds({
       x: BACK_GUTTER,
       y: 0,
       width: Math.max(0, width - BACK_GUTTER),
@@ -122,5 +147,19 @@ export class FocusRuntime {
   private block(url: string): void {
     this.closeSpace();
     this.options.onNavigationBlocked(url);
+  }
+
+  private fail(view: WebContentsView, spaceId: string, message: string): void {
+    if (this.siteView !== view) return;
+    this.disposeSiteView();
+    this.options.onSiteStateChanged({ status: 'failed', spaceId, message });
+  }
+
+  private disposeSiteView(): void {
+    const view = this.siteView;
+    if (!view) return;
+    this.siteView = null;
+    if (!this.window.isDestroyed()) this.window.contentView.removeChildView(view);
+    if (!view.webContents.isDestroyed()) view.webContents.close();
   }
 }
