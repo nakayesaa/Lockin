@@ -19,6 +19,7 @@ export type SiteState =
 
 export class FocusRuntime {
   private siteView: WebContentsView | null = null;
+  private loadSequence = 0;
   private readonly logger = createLogger('focus-runtime');
   private readonly resize: () => void;
 
@@ -50,6 +51,9 @@ export class FocusRuntime {
     if (!session || session.endReason !== null) throw new Error('No focus session is active');
     const space = session.spaces.find(({ id }) => id === spaceId);
     if (!space) throw new Error('This space is not allowed in the active session');
+    if (!findAllowedSpaceForUrl(space.startUrl, [space])) {
+      throw new Error('This space has an invalid start address');
+    }
 
     this.closeSpace();
     const view = this.createView(space, session.spaces);
@@ -96,19 +100,22 @@ export class FocusRuntime {
     const view = new WebContentsView(createSiteViewOptions());
     view.setBackgroundColor('#ffffff');
     const { webContents } = view;
+    webContents.setIgnoreMenuShortcuts(true);
 
     const guard = (details: { url: string; isMainFrame: boolean; preventDefault(): void }) => {
       if (!details.isMainFrame || findAllowedSpaceForUrl(details.url, allowedSpaces)) return;
       details.preventDefault();
-      this.block(details.url);
+      this.block(view, details.url);
     };
     webContents.on('will-navigate', (details) => guard(details));
     webContents.on('will-redirect', (details) => guard(details));
     webContents.setWindowOpenHandler(({ url }) => {
-      if (findAllowedSpaceForUrl(url, allowedSpaces)) void this.load(view, space.id, url);
-      else this.block(url);
+      const destination = findAllowedSpaceForUrl(url, allowedSpaces);
+      if (destination) void this.load(view, destination.id, url);
+      else this.block(view, url);
       return { action: 'deny' };
     });
+    webContents.on('will-prevent-unload', (event) => event.preventDefault());
     webContents.on('render-process-gone', (_event, details) => {
       this.logger.warn('Site renderer stopped', { spaceId: space.id, reason: details.reason });
       this.fail(view, space.id, 'The website stopped unexpectedly.');
@@ -122,16 +129,17 @@ export class FocusRuntime {
 
   private async load(view: WebContentsView, spaceId: string, url: string): Promise<void> {
     if (this.siteView !== view) return;
+    const loadSequence = ++this.loadSequence;
     view.setVisible(false);
     this.options.onSiteStateChanged({ status: 'loading', spaceId });
     try {
       await view.webContents.loadURL(url);
-      if (this.siteView !== view) return;
+      if (this.siteView !== view || this.loadSequence !== loadSequence) return;
       view.setVisible(true);
       view.webContents.focus();
       this.options.onSiteStateChanged({ status: 'ready', spaceId });
     } catch (error) {
-      if (this.siteView !== view) return;
+      if (this.siteView !== view || this.loadSequence !== loadSequence) return;
       this.logger.warn('Website failed to load', {
         spaceId,
         message: error instanceof Error ? error.message : 'Unknown load error',
@@ -151,7 +159,8 @@ export class FocusRuntime {
     });
   }
 
-  private block(url: string): void {
+  private block(view: WebContentsView, url: string): void {
+    if (this.siteView !== view) return;
     this.closeSpace();
     this.options.onNavigationBlocked(url);
   }
@@ -166,6 +175,7 @@ export class FocusRuntime {
     const view = this.siteView;
     if (!view) return;
     this.siteView = null;
+    this.loadSequence += 1;
     if (!this.window.isDestroyed()) this.window.contentView.removeChildView(view);
     if (!view.webContents.isDestroyed()) view.webContents.close();
   }

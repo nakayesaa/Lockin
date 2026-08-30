@@ -11,6 +11,11 @@ export function createSiteViewOptions(): WebContentsViewConstructorOptions {
       sandbox: true,
       webviewTag: false,
       devTools: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      navigateOnDragDrop: false,
+      nodeIntegrationInSubFrames: false,
+      nodeIntegrationInWorker: false,
     },
   };
 }
