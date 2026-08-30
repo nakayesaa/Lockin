@@ -23,6 +23,7 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && electron-vite build"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "5.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "4.5.1"

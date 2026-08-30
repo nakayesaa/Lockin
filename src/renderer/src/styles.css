@@ -1,9 +1,14 @@
+@import '@fontsource-variable/geist/wght.css';
 @import 'tailwindcss';
 
 :root {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', sans-serif;
+  font-family: 'Geist Variable', 'Segoe UI', sans-serif;
   color: #07111f;
+  font-feature-settings:
+    'kern' 1,
+    'liga' 1,
+    'calt' 1;
+  font-kerning: normal;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --glass: rgba(246, 250, 255, 0.74);
@@ -27,6 +32,8 @@ body,
 body {
   overflow: hidden;
   background: #69aefa;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 button,
 input,
@@ -119,6 +126,7 @@ input:focus-visible {
   align-items: center;
   gap: 10px;
   font-size: 12px;
+  font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.01em;
   text-shadow: 0 1px 8px rgba(0, 48, 113, 0.35);
@@ -178,9 +186,9 @@ input:focus-visible {
 .hero-copy h1 {
   margin: 0;
   font-size: clamp(42px, 4.2vw, 64px);
-  font-weight: 720;
-  letter-spacing: -0.065em;
-  line-height: 0.89;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
 }
 .hero-copy > p:last-child {
   margin: 14px 0 0;
@@ -265,8 +273,9 @@ input:focus-visible {
 }
 .duration-stepper strong {
   font-size: 58px;
-  font-weight: 720;
-  letter-spacing: -0.07em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.055em;
   line-height: 0.95;
 }
 .duration-stepper div span {
@@ -351,6 +360,7 @@ input:focus-visible {
   color: rgba(255, 255, 255, 0.74);
   background: rgba(255, 255, 255, 0.1);
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
@@ -1074,8 +1084,8 @@ input:focus-visible {
 .focus-panel__time strong {
   font-size: 42px;
   font-variant-numeric: tabular-nums;
-  font-weight: 720;
-  letter-spacing: -0.06em;
+  font-weight: 700;
+  letter-spacing: -0.045em;
   line-height: 1;
 }
 .focus-panel__time span {
@@ -1497,8 +1507,8 @@ input:focus-visible {
 .completion-summary strong {
   font-size: 26px;
   font-variant-numeric: tabular-nums;
-  font-weight: 720;
-  letter-spacing: -0.05em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 .completion-summary div span {
   color: #7b8997;
@@ -1644,7 +1654,7 @@ input:focus-visible {
 }
 .spotify-track strong {
   font-size: 11px;
-  font-weight: 730;
+  font-weight: 680;
   letter-spacing: -0.015em;
 }
 .spotify-track div span {
