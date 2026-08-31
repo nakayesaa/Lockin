@@ -90,6 +90,21 @@ describe('SessionStore', () => {
     expect(JSON.parse(await readFile(filePath, 'utf8'))).toBeNull();
   });
 
+  it('durably completes the expected active session at its original deadline', async () => {
+    const store = sessionStore();
+    await store.initialize();
+    await start(store);
+
+    const completed = await store.complete('session-1');
+    expect(completed.session).toMatchObject({
+      endedAt: '2026-08-30T02:00:00.000Z',
+      endReason: 'completed',
+    });
+    await expect(store.complete('different-session')).rejects.toThrow(
+      'The active focus session changed unexpectedly',
+    );
+  });
+
   it('rejects reordered preset spaces and clamps a backwards system clock', async () => {
     const store = sessionStore();
     await store.initialize();
@@ -127,5 +142,21 @@ describe('SessionStore', () => {
     await expect(start(store)).rejects.toThrow('disk full');
     expect((await store.getSession()).session).toBeNull();
     expect(JSON.parse(await readFile(filePath, 'utf8'))).toBeNull();
+  });
+
+  it('keeps an active session recoverable when its completion write fails', async () => {
+    const initial = sessionStore();
+    await initial.initialize();
+    await start(initial);
+    const store = sessionStore({ writeAtomic: vi.fn().mockRejectedValue(new Error('disk full')) });
+    await store.initialize();
+
+    await expect(store.complete('session-1')).rejects.toThrow('disk full');
+    expect((await store.getSession()).session).toMatchObject({
+      id: 'session-1',
+      endedAt: null,
+      endReason: null,
+    });
+    expect(JSON.parse(await readFile(filePath, 'utf8'))).toMatchObject({ endReason: null });
   });
 });

@@ -137,7 +137,10 @@ function setup() {
   const onNavigationBlocked = vi.fn();
   const onSiteStateChanged = vi.fn();
   const onSessionCompleted = vi.fn();
-  const sessions = { getSession: vi.fn().mockResolvedValue({ session, notice: null }) };
+  const sessions = {
+    getSession: vi.fn().mockResolvedValue({ session, notice: null }),
+    complete: vi.fn().mockResolvedValue({ session, notice: null }),
+  };
   const runtime = new FocusRuntime(window as never, sessions as never, {
     onNavigationBlocked,
     onSiteStateChanged,
@@ -206,12 +209,18 @@ describe('FocusRuntime website lifecycle', () => {
   it('owns focus window shortcuts and completes an expired session in the main process', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-08-30T08:00:00.000Z'));
-    const { runtime, window, session, sessions, onSessionCompleted } = setup();
+    const context = setup();
+    const session = {
+      ...context.session,
+      durationSeconds: 1,
+      endsAt: '2026-08-30T08:00:01.000Z',
+    };
+    const { runtime, window, sessions, onSessionCompleted } = context;
     const completed = { ...session, endedAt: session.endsAt, endReason: 'completed' as const };
 
     runtime.enterFocus(session);
     await runtime.openSpace('chatgpt');
-    sessions.getSession.mockResolvedValue({ session: completed, notice: null });
+    sessions.complete.mockResolvedValue({ session: completed, notice: null });
     expect(window.setFullScreen).toHaveBeenCalledWith(true);
     expect(window.focus).toHaveBeenCalledOnce();
     expect(window.webContents.focus).toHaveBeenCalledTimes(2);
@@ -235,11 +244,78 @@ describe('FocusRuntime website lifecycle', () => {
     });
     expect(allowedClose.preventDefault).not.toHaveBeenCalled();
 
-    await vi.advanceTimersByTimeAsync(3_600_000);
-    expect(sessions.getSession).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(sessions.getSession).toHaveBeenCalledOnce();
+    expect(sessions.complete).toHaveBeenCalledWith(session.id);
     expect(electron.views[0]!.webContents.close).toHaveBeenCalledOnce();
     expect(window.setFullScreen).toHaveBeenLastCalledWith(false);
     expect(onSessionCompleted).toHaveBeenCalledOnce();
+  });
+
+  it('uses monotonic elapsed time so moving the wall clock backwards cannot extend focus', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-30T08:00:00.000Z'));
+    const context = setup();
+    const session = {
+      ...context.session,
+      durationSeconds: 2,
+      endsAt: '2026-08-30T08:00:02.000Z',
+    };
+    const completed = { ...session, endedAt: session.endsAt, endReason: 'completed' as const };
+    context.sessions.complete.mockResolvedValue({ session: completed, notice: null });
+
+    context.runtime.enterFocus(session);
+    await vi.advanceTimersByTimeAsync(1_000);
+    vi.setSystemTime(new Date('2026-08-30T07:00:01.000Z'));
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(context.sessions.complete).toHaveBeenCalledOnce();
+    expect(context.onSessionCompleted).toHaveBeenCalledOnce();
+  });
+
+  it('recognizes a wall-clock jump forward within one deadline check', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-30T08:00:00.000Z'));
+    const context = setup();
+    const completed = {
+      ...context.session,
+      endedAt: context.session.endsAt,
+      endReason: 'completed' as const,
+    };
+    context.sessions.complete.mockResolvedValue({ session: completed, notice: null });
+
+    context.runtime.enterFocus(context.session);
+    vi.setSystemTime(new Date('2026-08-30T09:00:00.000Z'));
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(context.sessions.complete).toHaveBeenCalledOnce();
+    expect(context.onSessionCompleted).toHaveBeenCalledOnce();
+  });
+
+  it('stays in focus and retries when durable completion temporarily fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-30T08:00:00.000Z'));
+    const context = setup();
+    const session = {
+      ...context.session,
+      durationSeconds: 1,
+      endsAt: '2026-08-30T08:00:01.000Z',
+    };
+    const completed = { ...session, endedAt: session.endsAt, endReason: 'completed' as const };
+    context.sessions.complete
+      .mockRejectedValueOnce(new Error('disk full'))
+      .mockResolvedValue({ session: completed, notice: null });
+
+    context.runtime.enterFocus(session);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(context.window.isFullScreen()).toBe(true);
+    expect(context.onSessionCompleted).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(context.sessions.complete).toHaveBeenCalledTimes(2);
+    expect(context.window.isFullScreen()).toBe(false);
+    expect(context.onSessionCompleted).toHaveBeenCalledOnce();
   });
 
   it('leaves the durable session untouched when the application window closes', () => {

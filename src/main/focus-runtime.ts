@@ -8,6 +8,7 @@ import { createSiteViewOptions, SITE_PARTITION } from './site-view-options';
 
 const CONTROL_BAR_HEIGHT = 64;
 const CONTROL_HOTSPOT_SIZE = 96;
+const DEADLINE_CHECK_INTERVAL_MS = 1_000;
 const configuredSessions = new WeakSet<object>();
 
 interface FocusRuntimeOptions {
@@ -22,6 +23,7 @@ export type SiteState =
 
 export class FocusRuntime {
   private activeSession: SessionRecord | null = null;
+  private monotonicDeadline = 0;
   private completionTimer: ReturnType<typeof setTimeout> | null = null;
   private siteView: WebContentsView | null = null;
   private siteControlsVisible = false;
@@ -79,6 +81,8 @@ export class FocusRuntime {
   enterFocus(session: SessionRecord): void {
     if (session.endReason !== null) return;
     this.activeSession = structuredClone(session);
+    this.monotonicDeadline =
+      performance.now() + Math.max(0, Date.parse(session.endsAt) - Date.now());
     this.scheduleCompletion(session);
     if (this.window.isMinimized()) this.window.restore();
     this.window.show();
@@ -90,6 +94,7 @@ export class FocusRuntime {
   exitFocus(): void {
     this.clearCompletionTimer();
     this.activeSession = null;
+    this.monotonicDeadline = 0;
     if (this.window.isFullScreen()) this.window.setFullScreen(false);
   }
 
@@ -119,6 +124,7 @@ export class FocusRuntime {
   destroy(): void {
     this.clearCompletionTimer();
     this.activeSession = null;
+    this.monotonicDeadline = 0;
     this.window.webContents.off('before-input-event', this.blockFocusShortcut);
     this.window.off('resize', this.resize);
     this.window.off('enter-full-screen', this.resize);
@@ -129,23 +135,31 @@ export class FocusRuntime {
 
   private scheduleCompletion(session: SessionRecord): void {
     this.clearCompletionTimer();
-    const delay = Math.max(0, Date.parse(session.endsAt) - Date.now());
+    const delay = Math.min(
+      DEADLINE_CHECK_INTERVAL_MS,
+      Math.max(
+        0,
+        Math.min(
+          Date.parse(session.endsAt) - Date.now(),
+          this.monotonicDeadline - performance.now(),
+        ),
+      ),
+    );
     this.completionTimer = setTimeout(() => {
       this.completionTimer = null;
-      void this.completeExpiredSession(session.id);
+      if (Date.now() < Date.parse(session.endsAt) && performance.now() < this.monotonicDeadline) {
+        this.scheduleCompletion(session);
+      } else {
+        void this.completeExpiredSession(session.id);
+      }
     }, delay);
   }
 
   private async completeExpiredSession(sessionId: string): Promise<void> {
     if (this.activeSession?.id !== sessionId) return;
     try {
-      const { session } = await this.sessions.getSession();
+      const { session } = await this.sessions.complete(sessionId);
       if (!session || session.id !== sessionId) return;
-      if (session.endReason === null) {
-        this.activeSession = session;
-        this.scheduleCompletion(session);
-        return;
-      }
 
       this.reset();
       this.exitFocus();

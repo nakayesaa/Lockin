@@ -141,6 +141,25 @@ export class SessionStore {
     });
   }
 
+  async complete(sessionId: string): Promise<SessionResult> {
+    return this.exclusive(async () => {
+      await this.completeIfExpired();
+      if (!this.session || this.session.id !== sessionId) {
+        throw new Error('The active focus session changed unexpectedly');
+      }
+      if (this.session.endReason !== null) return this.result();
+
+      const next = sessionRecordSchema.parse({
+        ...this.session,
+        endedAt: this.session.endsAt,
+        endReason: 'completed',
+      });
+      await this.writeAtomic(this.filePath, next);
+      this.session = next;
+      return this.result();
+    });
+  }
+
   async clear(): Promise<SessionResult> {
     return this.exclusive(async () => {
       await this.completeIfExpired();
