@@ -62,14 +62,16 @@ export class SessionStore {
 
       try {
         this.session = sessionFileSchema.parse(JSON.parse(await readFile(this.filePath, 'utf8')));
-        await this.completeIfExpired();
       } catch {
         const stamp = this.now().toISOString().replace(/[:.]/g, '-');
         await rename(this.filePath, `${this.filePath}.corrupt-${stamp}`);
         this.session = null;
         this.initialNotice = 'Damaged session data was moved aside. No focus session was resumed.';
         await this.writeAtomic(this.filePath, null);
+        return this.result();
       }
+
+      await this.completeIfExpired();
       return this.result();
     });
   }

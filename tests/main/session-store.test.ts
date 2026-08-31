@@ -159,4 +159,24 @@ describe('SessionStore', () => {
     });
     expect(JSON.parse(await readFile(filePath, 'utf8'))).toMatchObject({ endReason: null });
   });
+
+  it('does not quarantine valid session data when restart completion cannot be written', async () => {
+    const initial = sessionStore();
+    await initial.initialize();
+    await start(initial);
+    now = new Date('2026-08-30T02:05:00.000Z');
+    const failing = sessionStore({
+      writeAtomic: vi.fn().mockRejectedValue(new Error('disk full')),
+    });
+
+    await expect(failing.initialize()).rejects.toThrow('disk full');
+    expect(await readdir(directory)).toEqual(['session.json']);
+    expect(JSON.parse(await readFile(filePath, 'utf8'))).toMatchObject({ endReason: null });
+
+    const recovered = await sessionStore().initialize();
+    expect(recovered.session).toMatchObject({
+      endedAt: '2026-08-30T02:00:00.000Z',
+      endReason: 'completed',
+    });
+  });
 });
