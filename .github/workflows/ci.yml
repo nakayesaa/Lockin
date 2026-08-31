@@ -34,5 +34,5 @@ jobs:
       - name: Audit high-severity production dependencies
         run: npm audit --omit=dev --audit-level=high
 
-      - name: Run Phase 2 quality gate
+      - name: Run full quality gate
         run: npm run check

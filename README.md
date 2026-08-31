@@ -2,9 +2,9 @@
 
 LockIn is a local-first Windows focus environment. Users choose a duration and approved websites, enter a fullscreen launcher, and open one controlled website at a time inside the application.
 
-## Product preview
+## Product
 
-The current interactive prototype includes:
+The current application includes:
 
 - the wallpaper-led session setup screen;
 - a dynamic spaces dock with crystal and custom-image treatments;
