@@ -6,6 +6,7 @@ const electron = vi.hoisted(() => ({
   nextId: 1,
   views: [] as Array<{
     setBounds: ReturnType<typeof vi.fn>;
+    setBorderRadius: ReturnType<typeof vi.fn>;
     setVisible: ReturnType<typeof vi.fn>;
     webContents: {
       id: number;
@@ -19,6 +20,7 @@ const electron = vi.hoisted(() => ({
 vi.mock('electron', () => {
   class FakeWebContentsView {
     readonly setBounds = vi.fn();
+    readonly setBorderRadius = vi.fn();
     readonly setVisible = vi.fn();
     readonly webContents = {
       id: electron.nextId++,
@@ -84,15 +86,17 @@ describe('Spotify website overlay', () => {
       width: 300,
       height: 184,
     });
+    expect(view.setBorderRadius).toHaveBeenLastCalledWith(28);
     expect(controller.owns({ id: view.webContents.id } as never)).toBe(true);
 
     controller.setExpanded(false);
     expect(view.setBounds).toHaveBeenLastCalledWith({
-      x: 1096,
-      y: 699,
-      width: 76,
-      height: 76,
+      x: 1110,
+      y: 713,
+      width: 62,
+      height: 62,
     });
+    expect(view.setBorderRadius).toHaveBeenLastCalledWith(31);
 
     controller.hide();
     expect(window.contentView.removeChildView).toHaveBeenCalledWith(view);

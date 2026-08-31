@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { createLogger } from './logger';
 
 const expandedSize = { width: 300, height: 184 } as const;
-const compactSize = { width: 76, height: 76 } as const;
+const compactSize = { width: 62, height: 62 } as const;
+const expandedRadius = 28;
 const rightMargin = 28;
 const bottomMargin = 25;
 
@@ -117,6 +118,7 @@ export class SpotifyOverlayController {
     if (!this.view || this.window.isDestroyed()) return;
     const [windowWidth = 0, windowHeight = 0] = this.window.getContentSize();
     const size = this.expanded ? expandedSize : compactSize;
+    this.view.setBorderRadius(this.expanded ? expandedRadius : compactSize.width / 2);
     this.view.setBounds({
       x: Math.max(0, windowWidth - size.width - rightMargin),
       y: Math.max(0, windowHeight - size.height - bottomMargin),
