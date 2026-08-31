@@ -824,7 +824,9 @@ function LockInApp() {
           }}
         />
       ) : null}
-      {currentScreen === 'setup' || currentScreen === 'launcher' ? <SpotifyPlayer /> : null}
+      {currentScreen === 'setup' || currentScreen === 'launcher' ? (
+        <SpotifyPlayer focusActive={focusActive} />
+      ) : null}
     </main>
   );
 }

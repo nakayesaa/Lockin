@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
 import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 import { CURRENT_SESSION_VERSION } from '../../src/shared/session-time';
-import type { SessionEvent } from '../../src/shared/contracts';
+import type { SessionEvent, SpotifyPlayback } from '../../src/shared/contracts';
 
 describe('LockIn product flow', () => {
   afterEach(() => {
@@ -258,6 +258,70 @@ describe('LockIn product flow', () => {
     expect(screen.getByText('Soft Current')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Pause music' }));
     expect(screen.getByRole('button', { name: 'Play music' })).toBeVisible();
+  });
+
+  it('connects and controls live Spotify playback through the desktop bridge', async () => {
+    const state = createDefaultWorkspace();
+    let playback: SpotifyPlayback = { status: 'disconnected' };
+    const connected: SpotifyPlayback = {
+      status: 'active',
+      isPlaying: true,
+      title: 'A Moment Apart',
+      artist: 'ODESZA',
+      artworkUrl: 'https://i.scdn.co/playlist.jpg',
+      spotifyUrl: 'https://open.spotify.com/track/track-id',
+      contextName: 'Deep Focus',
+      durationMs: 180_000,
+      progressMs: 12_000,
+      fetchedAt: Date.now(),
+    };
+    const getSpotifyPlayback = vi.fn(async () => playback);
+    const connectSpotify = vi.fn(async () => {
+      playback = connected;
+      return playback;
+    });
+    const pauseSpotify = vi.fn(async () => {
+      playback = { ...connected, isPlaying: false };
+    });
+    const nextSpotify = vi.fn(async () => {
+      playback = { ...connected, title: 'Bloom' };
+    });
+    const openSpotify = vi.fn();
+    const disconnectSpotify = vi.fn(async () => {
+      playback = { status: 'disconnected' };
+    });
+    Object.defineProperty(window, 'lockIn', {
+      configurable: true,
+      value: {
+        getWorkspace: vi.fn().mockResolvedValue({ state, notice: null }),
+        getSpotifyPlayback,
+        connectSpotify,
+        disconnectSpotify,
+        playSpotify: vi.fn(),
+        pauseSpotify,
+        nextSpotify,
+        openSpotify,
+      },
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect Spotify' }));
+    expect(await screen.findByText('A Moment Apart')).toBeVisible();
+    expect(screen.getByText('ODESZA · Deep Focus')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open A Moment Apart in Spotify' }));
+    expect(openSpotify).toHaveBeenCalledWith('https://open.spotify.com/track/track-id');
+    const pause = screen.getByRole('button', { name: 'Pause music' });
+    await waitFor(() => expect(pause).toBeEnabled());
+    fireEvent.click(pause);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Play music' })).toBeVisible());
+    expect(pauseSpotify).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
+    expect(await screen.findByText('Bloom')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect Spotify' }));
+    expect(await screen.findByRole('button', { name: 'Connect Spotify' })).toBeVisible();
+    expect(disconnectSpotify).toHaveBeenCalledOnce();
   });
 
   it('walks from launcher to workspace and blocked navigation', async () => {

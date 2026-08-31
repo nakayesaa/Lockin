@@ -131,4 +131,20 @@ describe('SpotifyService', () => {
       expect.objectContaining({ headers: { Authorization: 'Bearer refreshed' } }),
     );
   });
+
+  it('opens only canonical Spotify links', async () => {
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+    const service = new SpotifyService({
+      clientId: 'client-id',
+      scopes: [],
+      tokens: tokenRepository(),
+      openExternal,
+    });
+
+    await expect(service.open('https://example.com/track/id')).rejects.toThrow(
+      'Invalid Spotify destination',
+    );
+    await service.open('https://open.spotify.com/track/id');
+    expect(openExternal).toHaveBeenCalledWith('https://open.spotify.com/track/id');
+  });
 });

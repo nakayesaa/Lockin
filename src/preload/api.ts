@@ -10,6 +10,7 @@ import {
   siteOpenRequestSchema,
   siteControlsRequestSchema,
   spotifyPlaybackSchema,
+  spotifyOpenRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -83,6 +84,9 @@ export function createLockInApi(bridge: Bridge): LockInApi {
     },
     nextSpotify: async () => {
       await bridge.invoke(IPC_CHANNELS.spotifyNext);
+    },
+    openSpotify: async (url: string) => {
+      await bridge.invoke(IPC_CHANNELS.spotifyOpen, spotifyOpenRequestSchema.parse({ url }));
     },
     onSessionEvent: (listener: (event: SessionEvent) => void) => {
       const wrapped = (_event: Electron.IpcRendererEvent, input: unknown) =>

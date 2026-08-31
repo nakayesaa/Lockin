@@ -39,6 +39,7 @@ describe('preload API', () => {
       'playSpotify',
       'pauseSpotify',
       'nextSpotify',
+      'openSpotify',
       'onSessionEvent',
     ]);
     await expect(api.getWorkspace()).resolves.toEqual(response);
@@ -70,6 +71,18 @@ describe('preload API', () => {
 
     await api.setSiteControlsVisible(false);
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.siteControlsSet, { visible: false });
+  });
+
+  it('allows only canonical Spotify links through the bridge', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined);
+    const api = createLockInApi(createBridge(invoke));
+
+    await expect(api.openSpotify('https://example.com/track/id')).rejects.toThrow();
+    expect(invoke).not.toHaveBeenCalled();
+    await api.openSpotify('https://open.spotify.com/track/id');
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.spotifyOpen, {
+      url: 'https://open.spotify.com/track/id',
+    });
   });
 
   it('validates mutation input before invoking the main process', async () => {

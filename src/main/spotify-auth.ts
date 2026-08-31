@@ -7,7 +7,7 @@ const tokenResponseSchema = z
   .object({
     access_token: z.string().min(1),
     token_type: z.literal('Bearer'),
-    scope: z.string(),
+    scope: z.string().default(''),
     expires_in: z.number().int().positive(),
     refresh_token: z.string().min(1).optional(),
   })

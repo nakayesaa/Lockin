@@ -9,6 +9,7 @@ import {
   siteOpenRequestSchema,
   siteControlsRequestSchema,
   spotifyPlaybackSchema,
+  spotifyOpenRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -124,4 +125,12 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC_CHANNELS.spotifyPlay, () => spotify.play());
   ipcMain.handle(IPC_CHANNELS.spotifyPause, () => spotify.pause());
   ipcMain.handle(IPC_CHANNELS.spotifyNext, () => spotify.next());
+  ipcMain.handle(IPC_CHANNELS.spotifyOpen, async (_event, input: unknown) => {
+    const session = await sessions.peekSession();
+    if (session?.endReason === null) {
+      throw new Error('Open Spotify after your focus session');
+    }
+    const { url } = spotifyOpenRequestSchema.parse(input);
+    await spotify.open(url);
+  });
 }

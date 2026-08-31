@@ -35,6 +35,7 @@ export const IPC_CHANNELS = {
   spotifyPlay: 'lockin:spotify:play',
   spotifyPause: 'lockin:spotify:pause',
   spotifyNext: 'lockin:spotify:next',
+  spotifyOpen: 'lockin:spotify:open',
   sessionEvent: 'lockin:session:event',
 } as const;
 
@@ -57,6 +58,9 @@ export const presetUpdateRequestSchema = z
 export const sessionStartRequestSchema = z.object({ presetId: entityIdSchema }).strict();
 export const siteOpenRequestSchema = z.object({ spaceId: entityIdSchema }).strict();
 export const siteControlsRequestSchema = z.object({ visible: z.boolean() }).strict();
+export const spotifyOpenRequestSchema = z
+  .object({ url: z.url().startsWith('https://open.spotify.com/') })
+  .strict();
 
 export const sessionResultSchema = z
   .object({
@@ -122,6 +126,7 @@ export interface LockInApi {
   playSpotify(): Promise<void>;
   pauseSpotify(): Promise<void>;
   nextSpotify(): Promise<void>;
+  openSpotify(url: string): Promise<void>;
   onSessionEvent(listener: (event: SessionEvent) => void): () => void;
 }
 

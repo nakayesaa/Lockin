@@ -94,6 +94,7 @@ export class SpotifyService {
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
   private readonly authorize: () => Promise<SpotifyTokenResponse>;
+  private connectTask: Promise<SpotifyPlayback> | null = null;
   private refreshTask: Promise<string> | null = null;
   private readonly playlistCache = new Map<string, { name: string; artworkUrl: string | null }>();
 
@@ -112,6 +113,14 @@ export class SpotifyService {
   }
 
   async connect(): Promise<SpotifyPlayback> {
+    if (this.connectTask) return this.connectTask;
+    this.connectTask = this.connectOnce().finally(() => {
+      this.connectTask = null;
+    });
+    return this.connectTask;
+  }
+
+  private async connectOnce(): Promise<SpotifyPlayback> {
     const token = await this.authorize();
     if (!token.refreshToken) throw new Error('Spotify did not return a refresh token');
     await this.options.tokens.save({
@@ -179,6 +188,14 @@ export class SpotifyService {
 
   async next(): Promise<void> {
     await this.command('/me/player/next', 'POST');
+  }
+
+  async open(url: string): Promise<void> {
+    const destination = new URL(url);
+    if (destination.protocol !== 'https:' || destination.hostname !== 'open.spotify.com') {
+      throw new Error('Invalid Spotify destination');
+    }
+    await this.options.openExternal(destination.toString());
   }
 
   private async command(path: string, method: 'POST' | 'PUT'): Promise<void> {

@@ -15,10 +15,10 @@ The current application includes:
 - real allowlisted websites with loading, retry, and crash-recovery states;
 - controlled redirects, forms, new-window requests, and external protocols;
 - persistent website login data with a guarded reset action;
-- a compact floating album-player prototype; and
+- a compact Spotify Connect player with live playback controls; and
 - a browser-only design mode with hot reload.
 
-Spaces, presets, active sessions, timer recovery, and controlled website navigation are validated and managed by the Electron main process. Album playback remains an interactive preview until its Spotify service is connected.
+Spaces, presets, active sessions, timer recovery, controlled website navigation, and Spotify playback are validated and managed by the Electron main process. Browser-only design mode keeps an interactive player preview because it does not expose desktop authentication.
 
 ## Requirements
 
@@ -85,6 +85,8 @@ Authentication or support hosts are not trusted implicitly. Add each required ho
 
 Active sessions are written atomically to a separate versioned file. A restarted app resumes the same deadline and allowed-space snapshot; expired sessions complete at their original deadline rather than restarting the timer.
 
+Spotify uses Authorization Code with PKCE through the system browser and a temporary loopback callback. Refresh tokens are encrypted with the operating system's secure storage before being written beneath `userData`; no client secret is shipped or stored. LockIn controls the user's active Spotify Connect device rather than embedding or downloading audio.
+
 ## Tests
 
 The production suite currently covers:
@@ -98,6 +100,7 @@ The production suite currently covers:
 - adversarial hostname, protocol, redirect, and pop-up handling;
 - secure `BrowserWindow` defaults;
 - preload channel isolation and validation; and
+- Spotify PKCE, encrypted token persistence, refresh, playback, and link isolation; and
 - the complete renderer product flow.
 
 ## Git workflow

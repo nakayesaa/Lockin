@@ -118,6 +118,7 @@ describe('focus IPC transition ordering', () => {
       play: vi.fn(),
       pause: vi.fn(),
       next: vi.fn(),
+      open: vi.fn(),
     };
     registerIpcHandlers({} as never, sessions as never, {} as never, spotify as never);
 
@@ -128,9 +129,15 @@ describe('focus IPC transition ordering', () => {
     await expect(handler(IPC_CHANNELS.spotifyGet)({})).resolves.toEqual({
       status: 'disconnected',
     });
+    await expect(
+      handler(IPC_CHANNELS.spotifyOpen)({}, { url: 'https://open.spotify.com/track/id' }),
+    ).rejects.toThrow('Open Spotify after your focus session');
+    expect(spotify.open).not.toHaveBeenCalled();
 
     sessions.peekSession.mockResolvedValue(null);
     await expect(handler(IPC_CHANNELS.spotifyConnect)({})).resolves.toEqual({ status: 'idle' });
     expect(spotify.connect).toHaveBeenCalledOnce();
+    await handler(IPC_CHANNELS.spotifyOpen)({}, { url: 'https://open.spotify.com/track/id' });
+    expect(spotify.open).toHaveBeenCalledWith('https://open.spotify.com/track/id');
   });
 });

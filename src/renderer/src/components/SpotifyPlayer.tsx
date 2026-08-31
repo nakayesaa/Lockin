@@ -1,18 +1,17 @@
 import { memo, useEffect, useState } from 'react';
 import playerWallpaperUrl from '../assets/spotify-player-wallpaper.png';
 import { PauseIcon, PlayIcon, SkipForwardIcon } from './Icons';
+import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
 
-const previewTracks = [
-  { title: 'Blue Hour', artist: 'Focus Radio' },
-  { title: 'Soft Current', artist: 'Luma' },
-  { title: 'After Blue', artist: 'Northline' },
-] as const;
-
-export const SpotifyPlayer = memo(function SpotifyPlayer() {
-  const [trackIndex, setTrackIndex] = useState(0);
-  const [playing, setPlaying] = useState(true);
+export const SpotifyPlayer = memo(function SpotifyPlayer({
+  focusActive,
+}: {
+  focusActive: boolean;
+}) {
   const [now, setNow] = useState(() => new Date());
-  const track = previewTracks[trackIndex] ?? previewTracks[0];
+  const spotify = useSpotifyPlayback();
+  const active = spotify.playback.status === 'active' ? spotify.playback : null;
+  const connected = spotify.playback.status !== 'disconnected';
   const time = now.toLocaleTimeString([], {
     hour: 'numeric',
     minute: '2-digit',
@@ -23,15 +22,10 @@ export const SpotifyPlayer = memo(function SpotifyPlayer() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const nextTrack = () => {
-    setTrackIndex((current) => (current + 1) % previewTracks.length);
-    setPlaying(true);
-  };
-
   return (
     <aside
       className="spotify-player"
-      aria-label="Spotify player preview"
+      aria-label={spotify.preview ? 'Spotify player preview' : 'Spotify player'}
       style={{ backgroundImage: `url(${playerWallpaperUrl})` }}
     >
       <span className="spotify-player__shade" aria-hidden="true" />
@@ -41,28 +35,83 @@ export const SpotifyPlayer = memo(function SpotifyPlayer() {
         </span>
         <strong>falling in love</strong>
         <time>{time}</time>
+        {connected && !spotify.preview ? (
+          <button
+            type="button"
+            className="spotify-player__disconnect"
+            aria-label="Disconnect Spotify"
+            disabled={spotify.busy}
+            onClick={() => void spotify.disconnect()}
+          >
+            ×
+          </button>
+        ) : null}
       </header>
 
-      <div className="spotify-player__track">
-        <span>Now playing</span>
-        <strong>{track.title}</strong>
-        <small>{track.artist}</small>
+      {active?.artworkUrl ? (
+        <button
+          type="button"
+          className="spotify-player__artwork"
+          aria-label={`Open ${active.title} in Spotify`}
+          disabled={!active.spotifyUrl || spotify.busy || focusActive}
+          onClick={() => void spotify.open()}
+        >
+          <img src={active.artworkUrl} alt="" />
+        </button>
+      ) : null}
+
+      <div className="spotify-player__track" aria-live="polite">
+        <span>{active ? 'Now playing' : connected ? 'Spotify ready' : 'Your music'}</span>
+        <strong>
+          {spotify.loading
+            ? 'Checking Spotify…'
+            : active?.title || (connected ? 'Ready when you are.' : 'Connect Spotify')}
+        </strong>
+        <small className={spotify.error ? 'is-error' : ''}>
+          {spotify.error ||
+            (active
+              ? `${active.artist}${active.contextName ? ` · ${active.contextName}` : ''}`
+              : connected
+                ? 'Start playback on any Spotify device.'
+                : focusActive
+                  ? 'Connect before your next focus.'
+                  : 'Premium account required.')}
+        </small>
       </div>
 
       <div className="spotify-player__actions">
-        <button
-          type="button"
-          className="spotify-player__play"
-          aria-label={playing ? 'Pause music' : 'Play music'}
-          onClick={() => setPlaying((current) => !current)}
-        >
-          {playing ? <PauseIcon /> : <PlayIcon />}
-          <span>{playing ? 'Pause' : 'Play'}</span>
-        </button>
-        <button type="button" aria-label="Next track" onClick={nextTrack}>
-          <span>Next</span>
-          <SkipForwardIcon />
-        </button>
+        {!connected && !spotify.preview ? (
+          <button
+            type="button"
+            className="spotify-player__connect"
+            disabled={spotify.busy || spotify.loading || focusActive}
+            onClick={() => void spotify.connect()}
+          >
+            <span>{spotify.busy ? 'Opening Spotify…' : 'Connect Spotify'}</span>
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="spotify-player__play"
+              aria-label={active?.isPlaying ? 'Pause music' : 'Play music'}
+              disabled={spotify.busy}
+              onClick={() => void spotify.toggle()}
+            >
+              {active?.isPlaying ? <PauseIcon /> : <PlayIcon />}
+              <span>{active?.isPlaying ? 'Pause' : 'Play'}</span>
+            </button>
+            <button
+              type="button"
+              aria-label="Next track"
+              disabled={spotify.busy}
+              onClick={() => void spotify.next()}
+            >
+              <span>Next</span>
+              <SkipForwardIcon />
+            </button>
+          </>
+        )}
       </div>
     </aside>
   );
