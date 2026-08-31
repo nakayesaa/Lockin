@@ -71,7 +71,14 @@ export class SessionStore {
         return this.result();
       }
 
+      const restoringActiveSession = this.session?.endReason === null;
       await this.completeIfExpired();
+      if (restoringActiveSession) {
+        this.initialNotice =
+          this.session?.endReason === 'completed'
+            ? 'Your focus session finished while LockIn was closed.'
+            : 'Your focus session resumed with its original deadline.';
+      }
       return this.result();
     });
   }

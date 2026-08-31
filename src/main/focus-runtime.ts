@@ -4,6 +4,7 @@ import type { SessionRecord } from '../shared/session-model';
 import { findAllowedSpaceForUrl } from '../shared/website-rules';
 import { createLogger } from './logger';
 import type { SessionStore } from './session-store';
+import { siteLoadFailureMessage } from './site-load-error';
 import { createSiteViewOptions, SITE_PARTITION } from './site-view-options';
 
 const CONTROL_BAR_HEIGHT = 64;
@@ -238,7 +239,7 @@ export class FocusRuntime {
         spaceId,
         message: error instanceof Error ? error.message : 'Unknown load error',
       });
-      this.fail(view, spaceId, 'The website could not be loaded. Check your connection.');
+      this.fail(view, spaceId, siteLoadFailureMessage(error));
     }
   }
 

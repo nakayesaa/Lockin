@@ -54,7 +54,10 @@ describe('SessionStore', () => {
 
     now = new Date('2026-08-30T01:20:00.000Z');
     const restored = sessionStore();
-    await expect(restored.initialize()).resolves.toEqual(started);
+    await expect(restored.initialize()).resolves.toEqual({
+      session: started.session,
+      notice: 'Your focus session resumed with its original deadline.',
+    });
   });
 
   it('supports a one-minute custom focus session', async () => {
@@ -86,6 +89,7 @@ describe('SessionStore', () => {
       endedAt: '2026-08-30T02:00:00.000Z',
       endReason: 'completed',
     });
+    expect(result.notice).toBe('Your focus session finished while LockIn was closed.');
     expect(JSON.parse(await readFile(filePath, 'utf8'))).toMatchObject({
       endReason: 'completed',
     });

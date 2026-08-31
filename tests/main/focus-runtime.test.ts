@@ -423,7 +423,7 @@ describe('FocusRuntime website lifecycle', () => {
     expect(onSiteStateChanged).toHaveBeenLastCalledWith({
       status: 'failed',
       spaceId: 'chatgpt',
-      message: 'The website could not be loaded. Check your connection.',
+      message: 'The website could not be loaded. Try again in a moment.',
     });
 
     await runtime.openSpace('chatgpt');
