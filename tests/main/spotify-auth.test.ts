@@ -2,7 +2,11 @@
 
 import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { createPkcePair, requestSpotifyAuthorization } from '../../src/main/spotify-auth';
+import {
+  createPkcePair,
+  requestSpotifyAuthorization,
+  SPOTIFY_CALLBACK_PORT,
+} from '../../src/main/spotify-auth';
 
 describe('Spotify PKCE authorization', () => {
   it('creates a verifier and its S256 challenge', () => {
@@ -55,6 +59,6 @@ describe('Spotify PKCE authorization', () => {
     const body = new URLSearchParams(tokenRequest?.body as URLSearchParams);
     expect(body.get('client_id')).toBe('public-client-id');
     expect(body.get('client_secret')).toBeNull();
-    expect(body.get('redirect_uri')).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/callback$/);
+    expect(body.get('redirect_uri')).toBe(`http://127.0.0.1:${SPOTIFY_CALLBACK_PORT}/callback`);
   });
 });

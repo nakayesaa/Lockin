@@ -87,6 +87,12 @@ Active sessions are written atomically to a separate versioned file. A restarted
 
 Spotify uses Authorization Code with PKCE through the system browser and a temporary loopback callback. Refresh tokens are encrypted with the operating system's secure storage before being written beneath `userData`; no client secret is shipped or stored. LockIn controls the user's active Spotify Connect device rather than embedding or downloading audio.
 
+The Spotify application must allowlist this exact redirect URI:
+
+```text
+http://127.0.0.1:43821/callback
+```
+
 ## Tests
 
 The production suite currently covers:

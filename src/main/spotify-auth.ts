@@ -14,6 +14,7 @@ const tokenResponseSchema = z
   .passthrough();
 
 const callbackPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Spotify connected</title></head><body><main><h1>Spotify connected</h1><p>You can close this tab and return to LockIn.</p></main></body></html>`;
+export const SPOTIFY_CALLBACK_PORT = 43_821;
 
 export interface SpotifyTokenResponse {
   readonly accessToken: string;
@@ -133,8 +134,14 @@ export async function requestSpotifyAuthorization({
         finish({ code, redirectUri: `http://127.0.0.1:${address.port}/callback` });
       });
 
-      server.once('error', (error) => finish(error));
-      server.listen(0, '127.0.0.1', () => {
+      server.once('error', (error: NodeJS.ErrnoException) =>
+        finish(
+          error.code === 'EADDRINUSE'
+            ? new Error(`Spotify callback port ${SPOTIFY_CALLBACK_PORT} is already in use`)
+            : error,
+        ),
+      );
+      server.listen(SPOTIFY_CALLBACK_PORT, '127.0.0.1', () => {
         const address = server.address() as AddressInfo;
         const redirectUri = `http://127.0.0.1:${address.port}/callback`;
         const url = new URL('https://accounts.spotify.com/authorize');
