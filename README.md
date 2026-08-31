@@ -78,13 +78,13 @@ npm run package:win
 The verified outputs are written to `release/`:
 
 ```text
-LockIn-Setup-1.0.0-x64.exe
-LockIn-Setup-1.0.0-x64.exe.sha256
+LockIn-Setup-1.1.0-x64.exe
+LockIn-Setup-1.1.0-x64.exe.sha256
 ```
 
 The installer is per-user, adds Start Menu and desktop shortcuts, and preserves LockIn's data when the app is upgraded or uninstalled. Packaged startup logs are written beneath Electron's `logs` directory inside the LockIn user-data folder. The installer is currently unsigned, so Windows SmartScreen may show an unknown-publisher warning.
 
-Pushing a tag that exactly matches the package version, such as `v1.0.0`, runs the Windows quality gate, builds the installer, smoke-tests the packaged app, and publishes both verified files to a GitHub Release. A manual workflow run builds the same downloadable artifact without publishing a release.
+Pushing a tag that exactly matches the package version, such as `v1.1.0`, runs the Windows quality gate, builds the installer, smoke-tests the packaged app, and publishes both verified files to a GitHub Release. A manual workflow run builds the same downloadable artifact without publishing a release.
 
 ## Architecture
 

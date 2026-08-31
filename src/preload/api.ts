@@ -11,6 +11,7 @@ import {
   siteControlsRequestSchema,
   spotifyPlaybackSchema,
   spotifyOpenRequestSchema,
+  spotifyOverlayRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -87,6 +88,12 @@ export function createLockInApi(bridge: Bridge): LockInApi {
     },
     openSpotify: async (url: string) => {
       await bridge.invoke(IPC_CHANNELS.spotifyOpen, spotifyOpenRequestSchema.parse({ url }));
+    },
+    setSpotifyOverlayExpanded: async (expanded: boolean) => {
+      await bridge.invoke(
+        IPC_CHANNELS.spotifyOverlaySetExpanded,
+        spotifyOverlayRequestSchema.parse({ expanded }),
+      );
     },
     onSessionEvent: (listener: (event: SessionEvent) => void) => {
       const wrapped = (_event: Electron.IpcRendererEvent, input: unknown) =>

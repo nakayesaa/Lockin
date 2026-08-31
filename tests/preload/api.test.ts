@@ -40,6 +40,7 @@ describe('preload API', () => {
       'pauseSpotify',
       'nextSpotify',
       'openSpotify',
+      'setSpotifyOverlayExpanded',
       'onSessionEvent',
     ]);
     await expect(api.getWorkspace()).resolves.toEqual(response);
@@ -82,6 +83,16 @@ describe('preload API', () => {
     await api.openSpotify('https://open.spotify.com/track/id');
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.spotifyOpen, {
       url: 'https://open.spotify.com/track/id',
+    });
+  });
+
+  it('validates Spotify overlay sizing commands', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined);
+    const api = createLockInApi(createBridge(invoke));
+
+    await api.setSpotifyOverlayExpanded(false);
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.spotifyOverlaySetExpanded, {
+      expanded: false,
     });
   });
 

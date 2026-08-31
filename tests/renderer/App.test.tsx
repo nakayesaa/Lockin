@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/renderer/src/App';
+import { SpotifyOverlay } from '../../src/renderer/src/components/SpotifyPlayer';
 import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 import { CURRENT_SESSION_VERSION } from '../../src/shared/session-time';
 import type { SessionEvent, SpotifyPlayback } from '../../src/shared/contracts';
@@ -334,6 +335,26 @@ describe('LockIn product flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Disconnect Spotify' }));
     expect(await screen.findByRole('button', { name: 'Connect Spotify' })).toBeVisible();
     expect(disconnectSpotify).toHaveBeenCalledOnce();
+  });
+
+  it('collapses the website Spotify overlay into an expandable disc', async () => {
+    const setSpotifyOverlayExpanded = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window, 'lockIn', {
+      configurable: true,
+      value: {
+        getSpotifyPlayback: vi.fn().mockResolvedValue({ status: 'idle' }),
+        setSpotifyOverlayExpanded,
+      },
+    });
+
+    render(<SpotifyOverlay />);
+    fireEvent.click(screen.getByRole('button', { name: 'Minimize Spotify player' }));
+
+    expect(await screen.findByRole('button', { name: 'Expand Spotify player' })).toBeVisible();
+    expect(setSpotifyOverlayExpanded).toHaveBeenLastCalledWith(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Spotify player' }));
+    expect(await screen.findByRole('button', { name: 'Minimize Spotify player' })).toBeVisible();
+    expect(setSpotifyOverlayExpanded).toHaveBeenLastCalledWith(true);
   });
 
   it('walks from launcher to workspace and blocked navigation', async () => {

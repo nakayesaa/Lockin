@@ -36,6 +36,7 @@ export const IPC_CHANNELS = {
   spotifyPause: 'lockin:spotify:pause',
   spotifyNext: 'lockin:spotify:next',
   spotifyOpen: 'lockin:spotify:open',
+  spotifyOverlaySetExpanded: 'lockin:spotify-overlay:set-expanded',
   sessionEvent: 'lockin:session:event',
 } as const;
 
@@ -61,6 +62,7 @@ export const siteControlsRequestSchema = z.object({ visible: z.boolean() }).stri
 export const spotifyOpenRequestSchema = z
   .object({ url: z.url().startsWith('https://open.spotify.com/') })
   .strict();
+export const spotifyOverlayRequestSchema = z.object({ expanded: z.boolean() }).strict();
 
 export const sessionResultSchema = z
   .object({
@@ -127,6 +129,7 @@ export interface LockInApi {
   pauseSpotify(): Promise<void>;
   nextSpotify(): Promise<void>;
   openSpotify(url: string): Promise<void>;
+  setSpotifyOverlayExpanded(expanded: boolean): Promise<void>;
   onSessionEvent(listener: (event: SessionEvent) => void): () => void;
 }
 

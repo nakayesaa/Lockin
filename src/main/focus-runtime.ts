@@ -16,6 +16,7 @@ interface FocusRuntimeOptions {
   readonly onNavigationBlocked: (url: string) => void;
   readonly onSiteStateChanged: (state: SiteState) => void;
   readonly onSessionCompleted: () => void;
+  readonly onSiteVisibilityChanged?: (visible: boolean) => void;
 }
 
 export type SiteState =
@@ -233,6 +234,7 @@ export class FocusRuntime {
       view.setVisible(true);
       view.webContents.focus();
       this.options.onSiteStateChanged({ status: 'ready', spaceId });
+      this.options.onSiteVisibilityChanged?.(true);
     } catch (error) {
       if (this.siteView !== view || this.loadSequence !== loadSequence) return;
       this.logger.warn('Website failed to load', {
@@ -272,6 +274,7 @@ export class FocusRuntime {
     if (!view) return;
     this.siteView = null;
     this.loadSequence += 1;
+    this.options.onSiteVisibilityChanged?.(false);
     if (!this.window.isDestroyed()) this.window.contentView.removeChildView(view);
     if (!view.webContents.isDestroyed()) view.webContents.close();
   }

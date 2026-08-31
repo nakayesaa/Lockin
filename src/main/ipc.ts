@@ -10,6 +10,7 @@ import {
   siteControlsRequestSchema,
   spotifyPlaybackSchema,
   spotifyOpenRequestSchema,
+  spotifyOverlayRequestSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -18,12 +19,14 @@ import type { WorkspaceStore } from './workspace-store';
 import type { FocusRuntime } from './focus-runtime';
 import type { SessionStore } from './session-store';
 import type { SpotifyService } from './spotify-service';
+import type { SpotifyOverlayController } from './spotify-overlay-controller';
 
 export function registerIpcHandlers(
   store: WorkspaceStore,
   sessions: SessionStore,
   runtime: FocusRuntime,
   spotify: SpotifyService,
+  spotifyOverlay?: SpotifyOverlayController,
 ): void {
   Object.values(IPC_CHANNELS).forEach((channel) => ipcMain.removeHandler(channel));
 
@@ -132,5 +135,10 @@ export function registerIpcHandlers(
     }
     const { url } = spotifyOpenRequestSchema.parse(input);
     await spotify.open(url);
+  });
+  ipcMain.handle(IPC_CHANNELS.spotifyOverlaySetExpanded, (event, input: unknown) => {
+    if (!spotifyOverlay?.owns(event.sender)) throw new Error('Invalid Spotify overlay request');
+    const { expanded } = spotifyOverlayRequestSchema.parse(input);
+    spotifyOverlay.setExpanded(expanded);
   });
 }

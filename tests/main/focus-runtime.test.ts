@@ -137,6 +137,7 @@ function setup() {
   const onNavigationBlocked = vi.fn();
   const onSiteStateChanged = vi.fn();
   const onSessionCompleted = vi.fn();
+  const onSiteVisibilityChanged = vi.fn();
   const sessions = {
     getSession: vi.fn().mockResolvedValue({ session, notice: null }),
     complete: vi.fn().mockResolvedValue({ session, notice: null }),
@@ -145,6 +146,7 @@ function setup() {
     onNavigationBlocked,
     onSiteStateChanged,
     onSessionCompleted,
+    onSiteVisibilityChanged,
   });
   return {
     runtime,
@@ -154,6 +156,7 @@ function setup() {
     onNavigationBlocked,
     onSiteStateChanged,
     onSessionCompleted,
+    onSiteVisibilityChanged,
   };
 }
 
@@ -168,7 +171,7 @@ describe('FocusRuntime website lifecycle', () => {
   });
 
   it('owns only one website view and disposes it when switching or closing', async () => {
-    const { runtime, window } = setup();
+    const { runtime, window, onSiteVisibilityChanged } = setup();
     const permissionCheck = electron.siteSession.setPermissionCheckHandler.mock.calls[0]?.[0] as
       (() => boolean) | undefined;
     const permissionRequest = electron.siteSession.setPermissionRequestHandler.mock
@@ -191,6 +194,7 @@ describe('FocusRuntime website lifecycle', () => {
     const first = electron.views[0]!;
     expect(first.setBounds).toHaveBeenCalledWith({ x: 0, y: 0, width: 1200, height: 800 });
     expect(first.webContents.setIgnoreMenuShortcuts).toHaveBeenCalledWith(true);
+    expect(onSiteVisibilityChanged).toHaveBeenLastCalledWith(true);
 
     first.webContents.emit('before-mouse-event', {}, { type: 'mouseMove', x: 1150, y: 20 });
     expect(first.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 64, width: 1200, height: 736 });
@@ -198,12 +202,14 @@ describe('FocusRuntime website lifecycle', () => {
     expect(first.setBounds).toHaveBeenLastCalledWith({ x: 0, y: 0, width: 1200, height: 800 });
 
     await runtime.openSpace('leetcode');
+    expect(onSiteVisibilityChanged).toHaveBeenCalledWith(false);
     expect(first.webContents.close).toHaveBeenCalledOnce();
     expect(window.contentView.removeChildView).toHaveBeenCalledWith(first);
     expect(window.contentView.addChildView).toHaveBeenCalledTimes(2);
 
     runtime.closeSpace();
     expect(electron.views[1]!.webContents.close).toHaveBeenCalledOnce();
+    expect(onSiteVisibilityChanged).toHaveBeenLastCalledWith(false);
   });
 
   it('owns focus window shortcuts and completes an expired session in the main process', async () => {

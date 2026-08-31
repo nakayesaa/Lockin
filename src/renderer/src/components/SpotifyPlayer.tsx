@@ -1,7 +1,32 @@
 import { memo, useEffect, useState } from 'react';
 import playerWallpaperUrl from '../assets/spotify-player-wallpaper.png';
-import { PauseIcon, PlayIcon, SkipForwardIcon } from './Icons';
+import { MinusIcon, PauseIcon, PlayIcon, SkipForwardIcon } from './Icons';
 import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
+
+function SpotifyMiniDisc({ artworkUrl, playing }: { artworkUrl: string | null; playing: boolean }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <span
+      className={`spotify-player-mini__disc ${playing ? 'is-playing' : ''}`}
+      style={{ backgroundImage: `url(${playerWallpaperUrl})` }}
+      aria-hidden="true"
+    >
+      {artworkUrl ? (
+        <img
+          src={artworkUrl}
+          alt=""
+          className={loaded ? 'is-visible' : ''}
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(false)}
+        />
+      ) : (
+        <span className="spotify-player-mini__note">♪</span>
+      )}
+      <span className="spotify-player-mini__hub" />
+    </span>
+  );
+}
 
 function SpotifyArtwork({
   title,
@@ -42,8 +67,14 @@ function SpotifyArtwork({
 
 export const SpotifyPlayer = memo(function SpotifyPlayer({
   focusActive,
+  overlay = false,
+  expanded = true,
+  onExpandedChange,
 }: {
   focusActive: boolean;
+  overlay?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }) {
   const [now, setNow] = useState(() => new Date());
   const spotify = useSpotifyPlayback();
@@ -68,9 +99,27 @@ export const SpotifyPlayer = memo(function SpotifyPlayer({
     return () => window.clearInterval(timer);
   }, []);
 
+  if (overlay && !expanded) {
+    return (
+      <button
+        type="button"
+        className="spotify-player-mini"
+        aria-label="Expand Spotify player"
+        title={active ? `${active.title} — ${active.artist}` : 'Expand Spotify player'}
+        onClick={() => onExpandedChange?.(true)}
+      >
+        <SpotifyMiniDisc
+          key={active?.artworkUrl ?? 'spotify-fallback'}
+          artworkUrl={active?.artworkUrl ?? null}
+          playing={active?.isPlaying ?? false}
+        />
+      </button>
+    );
+  }
+
   return (
     <aside
-      className="spotify-player"
+      className={`spotify-player ${overlay ? 'spotify-player--overlay' : ''}`}
       aria-label={spotify.preview ? 'Spotify player preview' : 'Spotify player'}
       style={{ backgroundImage: `url(${playerWallpaperUrl})` }}
     >
@@ -91,6 +140,16 @@ export const SpotifyPlayer = memo(function SpotifyPlayer({
         </span>
         <strong>falling in love</strong>
         <time>{time}</time>
+        {overlay ? (
+          <button
+            type="button"
+            className="spotify-player__minimize"
+            aria-label="Minimize Spotify player"
+            onClick={() => onExpandedChange?.(false)}
+          >
+            <MinusIcon />
+          </button>
+        ) : null}
         {connected && !spotify.preview ? (
           <button
             type="button"
@@ -151,3 +210,22 @@ export const SpotifyPlayer = memo(function SpotifyPlayer({
     </aside>
   );
 });
+
+export function SpotifyOverlay() {
+  const [expanded, setExpanded] = useState(true);
+
+  const resize = (nextExpanded: boolean) => {
+    const operation = window.lockIn?.setSpotifyOverlayExpanded(nextExpanded);
+    if (!operation) {
+      setExpanded(nextExpanded);
+      return;
+    }
+    void operation.then(() => setExpanded(nextExpanded)).catch(() => undefined);
+  };
+
+  return (
+    <main className="spotify-overlay-root">
+      <SpotifyPlayer focusActive overlay expanded={expanded} onExpandedChange={resize} />
+    </main>
+  );
+}

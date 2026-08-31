@@ -11,6 +11,8 @@ import { IPC_CHANNELS } from '../shared/contracts';
 import { SpotifyTokenStore } from './spotify-token-store';
 import { SpotifyService } from './spotify-service';
 import { SPOTIFY_CLIENT_ID, SPOTIFY_SCOPES } from './spotify-config';
+import { SpotifyOverlayController } from './spotify-overlay-controller';
+import { getPreloadPath } from './preload-path';
 
 const logger = createLogger('main');
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -61,6 +63,11 @@ async function startApplication(): Promise<void> {
 
   const openWindow = () =>
     createMainWindow((window) => {
+      const spotifyOverlay = new SpotifyOverlayController(
+        window,
+        getPreloadPath(__dirname),
+        process.env['ELECTRON_RENDERER_URL'],
+      );
       const runtime = new FocusRuntime(window, sessionStore, {
         onNavigationBlocked: (url) => {
           let destination = 'Unknown destination';
@@ -85,8 +92,12 @@ async function startApplication(): Promise<void> {
             type: 'session-completed',
           });
         },
+        onSiteVisibilityChanged: (visible) => {
+          if (visible) spotifyOverlay.show();
+          else spotifyOverlay.hide();
+        },
       });
-      registerIpcHandlers(workspaceStore, sessionStore, runtime, spotify);
+      registerIpcHandlers(workspaceStore, sessionStore, runtime, spotify, spotifyOverlay);
       void sessionStore.peekSession().then((session) => {
         if (session?.endReason === null) runtime.enterFocus(session);
       });
