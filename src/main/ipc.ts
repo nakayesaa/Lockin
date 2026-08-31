@@ -8,6 +8,7 @@ import {
   sessionStartRequestSchema,
   siteOpenRequestSchema,
   siteControlsRequestSchema,
+  spotifyPlaybackSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -15,11 +16,13 @@ import {
 import type { WorkspaceStore } from './workspace-store';
 import type { FocusRuntime } from './focus-runtime';
 import type { SessionStore } from './session-store';
+import type { SpotifyService } from './spotify-service';
 
 export function registerIpcHandlers(
   store: WorkspaceStore,
   sessions: SessionStore,
   runtime: FocusRuntime,
+  spotify: SpotifyService,
 ): void {
   Object.values(IPC_CHANNELS).forEach((channel) => ipcMain.removeHandler(channel));
 
@@ -107,4 +110,18 @@ export function registerIpcHandlers(
     }
     await runtime.clearWebsiteData();
   });
+  ipcMain.handle(IPC_CHANNELS.spotifyGet, async () =>
+    spotifyPlaybackSchema.parse(await spotify.getPlayback()),
+  );
+  ipcMain.handle(IPC_CHANNELS.spotifyConnect, async () => {
+    const session = await sessions.peekSession();
+    if (session?.endReason === null) {
+      throw new Error('Connect Spotify before starting a focus session');
+    }
+    return spotifyPlaybackSchema.parse(await spotify.connect());
+  });
+  ipcMain.handle(IPC_CHANNELS.spotifyDisconnect, () => spotify.disconnect());
+  ipcMain.handle(IPC_CHANNELS.spotifyPlay, () => spotify.play());
+  ipcMain.handle(IPC_CHANNELS.spotifyPause, () => spotify.pause());
+  ipcMain.handle(IPC_CHANNELS.spotifyNext, () => spotify.next());
 }

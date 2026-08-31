@@ -68,7 +68,7 @@ describe('focus IPC transition ordering', () => {
       reset: vi.fn(() => order.push('reset')),
       enterFocus: vi.fn(() => order.push('enter')),
     };
-    registerIpcHandlers(store as never, sessions as never, runtime as never);
+    registerIpcHandlers(store as never, sessions as never, runtime as never, {} as never);
 
     await handler(IPC_CHANNELS.sessionStart)({}, { presetId: workspace.settings.activePresetId });
 
@@ -88,7 +88,7 @@ describe('focus IPC transition ordering', () => {
       reset: vi.fn(() => order.push('reset')),
       exitFocus: vi.fn(() => order.push('exit')),
     };
-    registerIpcHandlers({} as never, sessions as never, runtime as never);
+    registerIpcHandlers({} as never, sessions as never, runtime as never, {} as never);
 
     await expect(handler(IPC_CHANNELS.sessionEnd)({})).rejects.toThrow('disk full');
     expect(order).toEqual(['reset', 'persist']);
@@ -107,5 +107,30 @@ describe('focus IPC transition ordering', () => {
 
     await handler(IPC_CHANNELS.sessionEnd)({});
     expect(order).toEqual(['reset', 'persist', 'exit']);
+  });
+
+  it('keeps Spotify authorization outside an active focus session', async () => {
+    const sessions = { peekSession: vi.fn().mockResolvedValue(activeSession()) };
+    const spotify = {
+      connect: vi.fn().mockResolvedValue({ status: 'idle' }),
+      getPlayback: vi.fn().mockResolvedValue({ status: 'disconnected' }),
+      disconnect: vi.fn(),
+      play: vi.fn(),
+      pause: vi.fn(),
+      next: vi.fn(),
+    };
+    registerIpcHandlers({} as never, sessions as never, {} as never, spotify as never);
+
+    await expect(handler(IPC_CHANNELS.spotifyConnect)({})).rejects.toThrow(
+      'Connect Spotify before starting',
+    );
+    expect(spotify.connect).not.toHaveBeenCalled();
+    await expect(handler(IPC_CHANNELS.spotifyGet)({})).resolves.toEqual({
+      status: 'disconnected',
+    });
+
+    sessions.peekSession.mockResolvedValue(null);
+    await expect(handler(IPC_CHANNELS.spotifyConnect)({})).resolves.toEqual({ status: 'idle' });
+    expect(spotify.connect).toHaveBeenCalledOnce();
   });
 });

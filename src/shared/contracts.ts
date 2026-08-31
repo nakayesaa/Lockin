@@ -9,6 +9,7 @@ import {
   type SpaceInput,
 } from './data-model';
 import { sessionRecordSchema, type SessionRecord } from './session-model';
+import { spotifyPlaybackSchema, type SpotifyPlayback } from './spotify-model';
 
 export const IPC_CHANNELS = {
   workspaceGet: 'lockin:workspace:get',
@@ -28,6 +29,12 @@ export const IPC_CHANNELS = {
   siteClose: 'lockin:site:close',
   siteControlsSet: 'lockin:site-controls:set',
   siteDataClear: 'lockin:site-data:clear',
+  spotifyGet: 'lockin:spotify:get',
+  spotifyConnect: 'lockin:spotify:connect',
+  spotifyDisconnect: 'lockin:spotify:disconnect',
+  spotifyPlay: 'lockin:spotify:play',
+  spotifyPause: 'lockin:spotify:pause',
+  spotifyNext: 'lockin:spotify:next',
   sessionEvent: 'lockin:session:event',
 } as const;
 
@@ -109,7 +116,14 @@ export interface LockInApi {
   closeSite(): Promise<void>;
   setSiteControlsVisible(visible: boolean): Promise<void>;
   clearWebsiteData(): Promise<void>;
+  getSpotifyPlayback(): Promise<SpotifyPlayback>;
+  connectSpotify(): Promise<SpotifyPlayback>;
+  disconnectSpotify(): Promise<void>;
+  playSpotify(): Promise<void>;
+  pauseSpotify(): Promise<void>;
+  nextSpotify(): Promise<void>;
   onSessionEvent(listener: (event: SessionEvent) => void): () => void;
 }
 
-export type { PersistedState, SessionRecord };
+export { spotifyPlaybackSchema };
+export type { PersistedState, SessionRecord, SpotifyPlayback };

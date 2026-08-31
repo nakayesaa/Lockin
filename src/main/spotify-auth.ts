@@ -30,6 +30,12 @@ interface AuthorizeOptions {
   readonly timeoutMs?: number;
 }
 
+interface RefreshOptions {
+  readonly clientId: string;
+  readonly refreshToken: string;
+  readonly fetchImpl?: typeof fetch;
+}
+
 function encodeBase64Url(value: Uint8Array): string {
   return Buffer.from(value).toString('base64url');
 }
@@ -57,6 +63,18 @@ function spotifyError(status: number, body: string): Error {
     // Spotify occasionally returns an empty or non-JSON gateway response.
   }
   return new Error(detail || `Spotify authorization failed (${status})`);
+}
+
+async function readTokenResponse(response: Response): Promise<SpotifyTokenResponse> {
+  const body = await response.text();
+  if (!response.ok) throw spotifyError(response.status, body);
+  const token = tokenResponseSchema.parse(JSON.parse(body));
+  return {
+    accessToken: token.access_token,
+    refreshToken: token.refresh_token ?? null,
+    expiresInSeconds: token.expires_in,
+    scope: token.scope,
+  };
 }
 
 export async function requestSpotifyAuthorization({
@@ -148,13 +166,22 @@ export async function requestSpotifyAuthorization({
       code_verifier: verifier,
     }),
   });
-  const body = await response.text();
-  if (!response.ok) throw spotifyError(response.status, body);
-  const token = tokenResponseSchema.parse(JSON.parse(body));
-  return {
-    accessToken: token.access_token,
-    refreshToken: token.refresh_token ?? null,
-    expiresInSeconds: token.expires_in,
-    scope: token.scope,
-  };
+  return readTokenResponse(response);
+}
+
+export async function refreshSpotifyAuthorization({
+  clientId,
+  refreshToken,
+  fetchImpl = fetch,
+}: RefreshOptions): Promise<SpotifyTokenResponse> {
+  const response = await fetchImpl('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    }),
+  });
+  return readTokenResponse(response);
 }

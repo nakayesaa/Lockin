@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, safeStorage, shell } from 'electron';
 import { join } from 'node:path';
 import { getAppPaths } from './app-paths';
 import { registerIpcHandlers } from './ipc';
@@ -8,6 +8,9 @@ import { createMainWindow } from './window-controller';
 import { WorkspaceStore } from './workspace-store';
 import { SessionStore } from './session-store';
 import { IPC_CHANNELS } from '../shared/contracts';
+import { SpotifyTokenStore } from './spotify-token-store';
+import { SpotifyService } from './spotify-service';
+import { SPOTIFY_CLIENT_ID, SPOTIFY_SCOPES } from './spotify-config';
 
 const logger = createLogger('main');
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -37,8 +40,20 @@ if (hasSingleInstanceLock)
 
     const workspaceStore = new WorkspaceStore(join(paths.userData, 'workspace.json'));
     const sessionStore = new SessionStore(join(paths.userData, 'session.json'));
+    const spotifyTokens = new SpotifyTokenStore(join(paths.userData, 'spotify.json'), {
+      isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
+      encryptString: (value) => safeStorage.encryptString(value),
+      decryptString: (value) => safeStorage.decryptString(value),
+    });
     await workspaceStore.initialize();
     await sessionStore.initialize();
+    await spotifyTokens.initialize();
+    const spotify = new SpotifyService({
+      clientId: SPOTIFY_CLIENT_ID,
+      scopes: SPOTIFY_SCOPES,
+      tokens: spotifyTokens,
+      openExternal: (url) => shell.openExternal(url),
+    });
 
     const openWindow = () =>
       createMainWindow((window) => {
@@ -67,7 +82,7 @@ if (hasSingleInstanceLock)
             });
           },
         });
-        registerIpcHandlers(workspaceStore, sessionStore, runtime);
+        registerIpcHandlers(workspaceStore, sessionStore, runtime, spotify);
         void sessionStore.peekSession().then((session) => {
           if (session?.endReason === null) runtime.enterFocus(session);
         });

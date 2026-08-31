@@ -33,10 +33,27 @@ describe('preload API', () => {
       'closeSite',
       'setSiteControlsVisible',
       'clearWebsiteData',
+      'getSpotifyPlayback',
+      'connectSpotify',
+      'disconnectSpotify',
+      'playSpotify',
+      'pauseSpotify',
+      'nextSpotify',
       'onSessionEvent',
     ]);
     await expect(api.getWorkspace()).resolves.toEqual(response);
     expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.workspaceGet);
+  });
+
+  it('validates Spotify state before exposing it to the renderer', async () => {
+    const invoke = vi.fn().mockResolvedValue({ status: 'disconnected' });
+    const api = createLockInApi(createBridge(invoke));
+
+    await expect(api.getSpotifyPlayback()).resolves.toEqual({ status: 'disconnected' });
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.spotifyGet);
+
+    invoke.mockResolvedValue({ status: 'active', title: 'missing required fields' });
+    await expect(api.getSpotifyPlayback()).rejects.toThrow();
   });
 
   it('exposes a narrow command for clearing embedded website data', async () => {

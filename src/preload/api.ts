@@ -9,6 +9,7 @@ import {
   sessionStartRequestSchema,
   siteOpenRequestSchema,
   siteControlsRequestSchema,
+  spotifyPlaybackSchema,
   spaceCreateRequestSchema,
   spaceUpdateRequestSchema,
   workspaceResultSchema,
@@ -66,6 +67,22 @@ export function createLockInApi(bridge: Bridge): LockInApi {
     },
     clearWebsiteData: async () => {
       await bridge.invoke(IPC_CHANNELS.siteDataClear);
+    },
+    getSpotifyPlayback: async () =>
+      spotifyPlaybackSchema.parse(await bridge.invoke(IPC_CHANNELS.spotifyGet)),
+    connectSpotify: async () =>
+      spotifyPlaybackSchema.parse(await bridge.invoke(IPC_CHANNELS.spotifyConnect)),
+    disconnectSpotify: async () => {
+      await bridge.invoke(IPC_CHANNELS.spotifyDisconnect);
+    },
+    playSpotify: async () => {
+      await bridge.invoke(IPC_CHANNELS.spotifyPlay);
+    },
+    pauseSpotify: async () => {
+      await bridge.invoke(IPC_CHANNELS.spotifyPause);
+    },
+    nextSpotify: async () => {
+      await bridge.invoke(IPC_CHANNELS.spotifyNext);
     },
     onSessionEvent: (listener: (event: SessionEvent) => void) => {
       const wrapped = (_event: Electron.IpcRendererEvent, input: unknown) =>
