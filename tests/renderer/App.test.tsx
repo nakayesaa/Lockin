@@ -57,11 +57,6 @@ describe('LockIn product flow', () => {
     fireEvent.blur(name);
     await waitFor(() => expect(name).toHaveValue('Writing'));
 
-    fireEvent.click(screen.getByRole('button', { name: 'YouTube' }));
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Open YouTube' })).not.toBeInTheDocument(),
-    );
-
     fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
     expect(await screen.findByRole('option', { name: /Writing Copy/ })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
@@ -199,6 +194,7 @@ describe('LockIn product flow', () => {
     render(<App />);
 
     expect(screen.getByRole('complementary', { name: 'Spotify player preview' })).toBeVisible();
+    expect(screen.getByText('falling in love')).toBeVisible();
     expect(screen.getByText('Blue Hour')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Next track' }));
     expect(screen.getByText('Soft Current')).toBeVisible();

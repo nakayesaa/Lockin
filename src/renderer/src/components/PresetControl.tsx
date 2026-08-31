@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { Preset, Space } from '../../../shared/data-model';
+import type { Preset } from '../../../shared/data-model';
 import { CheckIcon, ChevronDownIcon, CopyIcon, PlusIcon, TrashIcon } from './Icons';
 
 interface PresetControlProps {
   readonly presets: Preset[];
-  readonly spaces: Space[];
   readonly activePreset: Preset;
   readonly saving: boolean;
   readonly onSelect: (id: string) => Promise<boolean>;
@@ -12,12 +11,10 @@ interface PresetControlProps {
   readonly onRename: (name: string) => Promise<boolean>;
   readonly onDuplicate: () => Promise<boolean>;
   readonly onDelete: () => Promise<boolean>;
-  readonly onToggleSpace: (id: string) => Promise<boolean>;
 }
 
 export function PresetControl({
   presets,
-  spaces,
   activePreset,
   saving,
   onSelect,
@@ -25,7 +22,6 @@ export function PresetControl({
   onRename,
   onDuplicate,
   onDelete,
-  onToggleSpace,
 }: PresetControlProps) {
   const [open, setOpen] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
@@ -84,10 +80,7 @@ export function PresetControl({
               >
                 <span>
                   <strong>{preset.name}</strong>
-                  <small>
-                    {preset.durationMinutes} min · {preset.spaceIds.length}{' '}
-                    {preset.spaceIds.length === 1 ? 'space' : 'spaces'}
-                  </small>
+                  <small>{preset.durationMinutes} min</small>
                 </span>
                 {preset.id === activePreset.id ? <CheckIcon /> : null}
               </button>
@@ -108,26 +101,6 @@ export function PresetControl({
                 }}
               />
             </label>
-
-            <div className="preset-space-picker" aria-label="Spaces in this preset">
-              {spaces.map((space) => {
-                const selected = activePreset.spaceIds.includes(space.id);
-                return (
-                  <button
-                    type="button"
-                    className={selected ? 'is-selected' : ''}
-                    aria-pressed={selected}
-                    disabled={saving}
-                    key={space.id}
-                    onClick={() => onToggleSpace(space.id)}
-                  >
-                    <span style={{ background: space.accentColor }} aria-hidden="true" />
-                    {space.name}
-                    {selected ? <CheckIcon /> : null}
-                  </button>
-                );
-              })}
-            </div>
 
             <div className="preset-menu__actions">
               <button type="button" disabled={saving} onClick={onDuplicate}>

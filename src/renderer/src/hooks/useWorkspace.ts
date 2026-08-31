@@ -35,7 +35,6 @@ export interface WorkspaceController {
   renamePreset(name: string): Promise<boolean>;
   duplicatePreset(): Promise<boolean>;
   deletePreset(): Promise<boolean>;
-  togglePresetSpace(id: string): Promise<boolean>;
 }
 
 export function useWorkspace(): WorkspaceController {
@@ -314,22 +313,6 @@ export function useWorkspace(): WorkspaceController {
     [run],
   );
 
-  const togglePresetSpace = useCallback(
-    (id: string) =>
-      updateActivePreset((preset) => {
-        const selected = preset.spaceIds.includes(id);
-        if (selected && preset.spaceIds.length === 1) throw new Error('Keep at least one space');
-        return {
-          name: preset.name,
-          durationMinutes: preset.durationMinutes,
-          spaceIds: selected
-            ? preset.spaceIds.filter((spaceId) => spaceId !== id)
-            : [...preset.spaceIds, id],
-        };
-      }),
-    [updateActivePreset],
-  );
-
   return {
     state,
     activePreset,
@@ -347,6 +330,5 @@ export function useWorkspace(): WorkspaceController {
     renamePreset,
     duplicatePreset,
     deletePreset,
-    togglePresetSpace,
   };
 }

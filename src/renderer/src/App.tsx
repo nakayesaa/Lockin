@@ -472,7 +472,6 @@ function LockInApp() {
             <>
               <PresetControl
                 presets={workspace.state.presets}
-                spaces={workspace.state.spaces}
                 activePreset={workspace.activePreset}
                 saving={workspace.saving || workspace.loading}
                 onSelect={workspace.setActivePreset}
@@ -480,7 +479,6 @@ function LockInApp() {
                 onRename={workspace.renamePreset}
                 onDuplicate={workspace.duplicatePreset}
                 onDelete={workspace.deletePreset}
-                onToggleSpace={workspace.togglePresetSpace}
               />
               {window.lockIn ? (
                 <button
