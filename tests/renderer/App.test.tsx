@@ -247,7 +247,7 @@ describe('LockIn product flow', () => {
 
     expect(
       screen.getByRole('button', { name: 'Press and hold for ten seconds to end session' }),
-    ).toBeVisible();
+    ).toHaveFocus();
     expect(screen.getByRole('dialog', { name: 'End focus session' })).toHaveTextContent(
       /^Hold To End$/,
     );

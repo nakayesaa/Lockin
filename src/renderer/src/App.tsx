@@ -286,6 +286,7 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
       <button
         type="button"
         className="hold-exit-button"
+        autoFocus
         style={{ '--hold-progress': `${holdProgress}%` } as CSSProperties}
         aria-label="Press and hold for ten seconds to end session"
         onPointerDown={(event) => {
