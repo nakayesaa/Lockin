@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { entityIdSchema, spaceSchema } from './data-model';
+import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES } from './focus-limits';
 import { CURRENT_SESSION_VERSION } from './session-time';
 
 export { CURRENT_SESSION_VERSION } from './session-time';
@@ -12,7 +13,11 @@ export const sessionRecordSchema = z
     id: entityIdSchema,
     presetId: entityIdSchema,
     presetName: z.string().trim().min(1).max(40),
-    durationSeconds: z.number().int().min(300).max(14_400),
+    durationSeconds: z
+      .number()
+      .int()
+      .min(MIN_FOCUS_MINUTES * 60)
+      .max(MAX_FOCUS_MINUTES * 60),
     startedAt: timestampSchema,
     endsAt: timestampSchema,
     endedAt: timestampSchema.nullable(),

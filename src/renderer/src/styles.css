@@ -271,12 +271,28 @@ input:focus-visible {
   flex-direction: column;
   align-items: center;
 }
-.duration-stepper strong {
+.duration-stepper input {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  outline: 0;
+  color: inherit;
+  background: transparent;
+  text-align: center;
   font-size: 58px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.055em;
   line-height: 0.95;
+}
+.duration-stepper input:focus {
+  box-shadow: 0 0 0 3px rgba(12, 29, 48, 0.08);
+}
+.duration-stepper input::-webkit-inner-spin-button,
+.duration-stepper input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
 }
 .duration-stepper div span {
   margin-top: 6px;
@@ -2005,7 +2021,7 @@ input:focus-visible {
   .duration-stepper {
     margin: 8px 0;
   }
-  .duration-stepper strong {
+  .duration-stepper input {
     font-size: 48px;
   }
   .dock-wrap {

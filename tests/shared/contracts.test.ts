@@ -31,6 +31,12 @@ describe('shared IPC contracts', () => {
         input: { name: 'Empty', durationMinutes: 0, spaceIds: [] },
       }),
     ).toThrow();
+    expect(
+      presetUpdateRequestSchema.parse({
+        id: 'preset',
+        input: { name: 'Quick check', durationMinutes: 1, spaceIds: ['chatgpt'] },
+      }).input.durationMinutes,
+    ).toBe(1);
   });
 
   it('validates session commands and events', () => {

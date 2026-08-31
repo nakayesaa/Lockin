@@ -57,6 +57,23 @@ describe('SessionStore', () => {
     await expect(restored.initialize()).resolves.toEqual(started);
   });
 
+  it('supports a one-minute custom focus session', async () => {
+    const store = sessionStore();
+    await store.initialize();
+    const workspace = createDefaultWorkspace();
+    const preset = { ...workspace.presets[0]!, durationMinutes: 1 };
+    const byId = new Map(workspace.spaces.map((space) => [space.id, space]));
+    const spaces = preset.spaceIds.map((id) => byId.get(id)!);
+
+    const result = await store.start(preset, spaces);
+    expect(result.session).toMatchObject({
+      durationSeconds: 60,
+      startedAt: '2026-08-30T01:00:00.000Z',
+      endsAt: '2026-08-30T01:01:00.000Z',
+      endReason: null,
+    });
+  });
+
   it('completes an expired session at its exact deadline after restart', async () => {
     const store = sessionStore();
     await store.initialize();

@@ -28,6 +28,14 @@ describe('LockIn product flow', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: '45' })).toHaveAttribute('aria-pressed', 'true'),
     );
+
+    const customDuration = screen.getByRole('spinbutton', {
+      name: 'Custom duration in minutes',
+    });
+    fireEvent.change(customDuration, { target: { value: '1' } });
+    fireEvent.blur(customDuration);
+    await waitFor(() => expect(customDuration).toHaveValue(1));
+    expect(screen.getByRole('button', { name: 'Start focus' })).toHaveTextContent('1 min');
   });
 
   it('adds a crystal space to the dynamic dock', async () => {

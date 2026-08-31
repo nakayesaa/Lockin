@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Space } from '../../shared/data-model';
+import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES } from '../../shared/focus-limits';
 import { focusedSessionSeconds } from '../../shared/session-time';
 import wallpaperUrl from './assets/polo-wallpaper.png';
 import {
@@ -84,6 +85,20 @@ function SetupCard({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   }, [duration, referenceTime]);
 
+  const commitDuration = (input: HTMLInputElement) => {
+    const nextDuration = Number(input.value);
+    if (
+      Number.isInteger(nextDuration) &&
+      nextDuration >= MIN_FOCUS_MINUTES &&
+      nextDuration <= MAX_FOCUS_MINUTES
+    ) {
+      input.value = String(nextDuration);
+      if (nextDuration !== duration) onDurationChange(nextDuration);
+      return;
+    }
+    input.value = String(duration);
+  };
+
   return (
     <div className="setup-stack">
       <section className="duration-card" aria-labelledby="focus-heading">
@@ -96,19 +111,37 @@ function SetupCard({
             type="button"
             aria-label="Decrease duration"
             disabled={disabled}
-            onClick={() => onDurationChange(Math.max(5, duration - 5))}
+            onClick={() => onDurationChange(Math.max(MIN_FOCUS_MINUTES, duration - 5))}
           >
             <MinusIcon />
           </button>
           <div aria-live="polite">
-            <strong>{duration}</strong>
+            <input
+              key={duration}
+              type="number"
+              aria-label="Custom duration in minutes"
+              min={MIN_FOCUS_MINUTES}
+              max={MAX_FOCUS_MINUTES}
+              step={1}
+              disabled={disabled}
+              defaultValue={duration}
+              onFocus={(event) => event.currentTarget.select()}
+              onBlur={(event) => commitDuration(event.currentTarget)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') event.currentTarget.blur();
+                if (event.key === 'Escape') {
+                  event.currentTarget.value = String(duration);
+                  event.currentTarget.blur();
+                }
+              }}
+            />
             <span>min</span>
           </div>
           <button
             type="button"
             aria-label="Increase duration"
             disabled={disabled}
-            onClick={() => onDurationChange(Math.min(240, duration + 5))}
+            onClick={() => onDurationChange(Math.min(MAX_FOCUS_MINUTES, duration + 5))}
           >
             <PlusIcon />
           </button>

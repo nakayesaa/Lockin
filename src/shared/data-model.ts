@@ -1,7 +1,10 @@
 import { z } from 'zod';
+import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES } from './focus-limits';
 import { normalizeWebsiteUrl } from './website-rules';
 
 export const CURRENT_DATA_VERSION = 1 as const;
+
+const durationMinutesSchema = z.number().int().min(MIN_FOCUS_MINUTES).max(MAX_FOCUS_MINUTES);
 
 export const entityIdSchema = z
   .string()
@@ -52,7 +55,7 @@ export const presetSchema = z
   .object({
     id: entityIdSchema,
     name: z.string().trim().min(1).max(40),
-    durationMinutes: z.number().int().min(5).max(240),
+    durationMinutes: durationMinutesSchema,
     spaceIds: z.array(entityIdSchema).min(1).max(24),
   })
   .strict()
@@ -121,7 +124,7 @@ export const spaceInputSchema = z
 export const presetInputSchema = z
   .object({
     name: z.string().trim().min(1).max(40),
-    durationMinutes: z.number().int().min(5).max(240),
+    durationMinutes: durationMinutesSchema,
     spaceIds: z.array(entityIdSchema).min(1).max(24),
   })
   .strict()
