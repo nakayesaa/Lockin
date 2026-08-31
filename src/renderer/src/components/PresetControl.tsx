@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Preset } from '../../../shared/data-model';
 import { CheckIcon, ChevronDownIcon, CopyIcon, PlusIcon, TrashIcon } from './Icons';
+import { useDialogFocus } from './useDialogFocus';
 
 interface PresetControlProps {
   readonly presets: Preset[];
@@ -26,6 +27,8 @@ export function PresetControl({
   const [open, setOpen] = useState(false);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const confirmingDelete = confirmingDeleteId === activePreset.id;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useDialogFocus<HTMLElement>(open, triggerRef);
 
   useEffect(() => {
     if (!open) return;
@@ -44,6 +47,7 @@ export function PresetControl({
   return (
     <div className="preset-control">
       <button
+        ref={triggerRef}
         type="button"
         className="preset-trigger"
         aria-label={`Open preset menu. Current preset: ${activePreset.name}`}
@@ -56,7 +60,7 @@ export function PresetControl({
       </button>
 
       {open ? (
-        <section className="preset-menu" role="dialog" aria-label="Focus presets">
+        <section ref={menuRef} className="preset-menu" role="dialog" aria-label="Focus presets">
           <header className="preset-menu__header">
             <div>
               <p className="eyebrow">Workspace</p>
@@ -73,6 +77,7 @@ export function PresetControl({
                 type="button"
                 role="option"
                 aria-selected={preset.id === activePreset.id}
+                data-autofocus={preset.id === activePreset.id ? '' : undefined}
                 className={preset.id === activePreset.id ? 'is-selected' : ''}
                 key={preset.id}
                 disabled={saving}

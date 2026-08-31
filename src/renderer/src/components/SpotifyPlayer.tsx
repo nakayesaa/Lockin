@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import playerWallpaperUrl from '../assets/spotify-player-wallpaper.png';
 import { PauseIcon, PlayIcon, SkipForwardIcon } from './Icons';
 
@@ -8,14 +8,20 @@ const previewTracks = [
   { title: 'After Blue', artist: 'Northline' },
 ] as const;
 
-export function SpotifyPlayer() {
+export const SpotifyPlayer = memo(function SpotifyPlayer() {
   const [trackIndex, setTrackIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [now, setNow] = useState(() => new Date());
   const track = previewTracks[trackIndex] ?? previewTracks[0];
-  const time = new Date().toLocaleTimeString([], {
+  const time = now.toLocaleTimeString([], {
     hour: 'numeric',
     minute: '2-digit',
   });
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const nextTrack = () => {
     setTrackIndex((current) => (current + 1) % previewTracks.length);
@@ -60,4 +66,4 @@ export function SpotifyPlayer() {
       </div>
     </aside>
   );
-}
+});

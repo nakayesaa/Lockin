@@ -42,11 +42,25 @@ describe('LockIn product flow', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add an allowed website' }));
+    expect(screen.getByLabelText('Name')).toHaveFocus();
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Figma' } });
     fireEvent.change(screen.getByLabelText('Website'), { target: { value: 'figma.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add to focus' }));
 
     expect(await screen.findByRole('button', { name: 'Open Figma' })).toBeVisible();
+  });
+
+  it('closes the space editor with Escape and restores keyboard focus', () => {
+    render(<App />);
+    const addSpace = screen.getByRole('button', { name: 'Add an allowed website' });
+    addSpace.focus();
+    fireEvent.click(addSpace);
+
+    expect(screen.getByLabelText('Name')).toHaveFocus();
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByRole('region', { name: 'Add a space' })).not.toBeInTheDocument();
+    expect(addSpace).toHaveFocus();
   });
 
   it('manages presets without leaving the setup screen', async () => {
@@ -72,6 +86,12 @@ describe('LockIn product flow', () => {
     await waitFor(() =>
       expect(screen.queryByRole('option', { name: /Writing Copy/ })).not.toBeInTheDocument(),
     );
+
+    const presetTrigger = screen.getByRole('button', {
+      name: /Open preset menu\. Current preset:/,
+    });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => expect(presetTrigger).toHaveFocus());
   });
 
   it('keeps an unsafe website draft open and shows a useful error', async () => {
@@ -131,13 +151,21 @@ describe('LockIn product flow', () => {
     });
 
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: 'Website data' }));
+    const websiteData = screen.getByRole('button', { name: 'Website data' });
+    websiteData.focus();
+    fireEvent.click(websiteData);
     expect(screen.getByRole('dialog', { name: 'Clear website data?' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
     expect(clearWebsiteData).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Clear data' }));
+    const clearData = screen.getByRole('button', { name: 'Clear data' });
+    clearData.focus();
+    fireEvent.keyDown(clearData, { key: 'Tab' });
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    fireEvent.click(clearData);
     await waitFor(() => expect(clearWebsiteData).toHaveBeenCalledOnce());
     expect(screen.getByRole('status')).toHaveTextContent('Website data cleared');
+    await waitFor(() => expect(websiteData).toHaveFocus());
   });
 
   it('resumes a persisted session and reports real blocked navigation', async () => {
@@ -188,6 +216,7 @@ describe('LockIn product flow', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Couldn’t open ChatGPT.' })).toBeVisible();
     expect(screen.getByText('The website stopped unexpectedly.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Try again' })).toHaveFocus();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(openSite).toHaveBeenCalledTimes(2));
     act(() => emit?.({ type: 'navigation-blocked', destination: 'example.com' }));
@@ -196,6 +225,7 @@ describe('LockIn product flow', () => {
       await screen.findByRole('heading', { name: 'This destination can wait.' }),
     ).toBeVisible();
     expect(screen.getByText(/example\.com isn’t one of the spaces/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Back to work' })).toHaveFocus();
 
     const endsAt = new Date(startedAt.getTime() + preset.durationMinutes * 60_000).toISOString();
     const getSession = window.lockIn?.getSession as ReturnType<typeof vi.fn>;
@@ -251,7 +281,9 @@ describe('LockIn product flow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
     await screen.findByRole('button', { name: 'Open session controls' });
     fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
-    fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
+    const endEarly = screen.getByRole('button', { name: 'End focus early' });
+    endEarly.focus();
+    fireEvent.click(endEarly);
 
     expect(
       screen.getByRole('button', { name: 'Press and hold for ten seconds to end session' }),
@@ -263,6 +295,9 @@ describe('LockIn product flow', () => {
       screen.queryByRole('heading', { name: 'End this focus session?' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText('END MY SESSION')).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'End focus session' })).not.toBeInTheDocument();
+    expect(endEarly).toHaveFocus();
   });
 
   it('keeps the session panel minimal while the countdown ticks', async () => {
@@ -270,13 +305,23 @@ describe('LockIn product flow', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByRole('status')).toHaveTextContent('60:00 remaining');
     await act(async () => vi.advanceTimersByTimeAsync(1_000));
-    fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    const sessionTrigger = screen.getByRole('button', { name: 'Open session controls' });
+    fireEvent.click(sessionTrigger);
 
     const controls = screen.getByRole('dialog', { name: 'Focus session controls' });
     expect(controls).toHaveTextContent('59:59remaining');
     expect(controls).not.toHaveTextContent('Focus in progress');
     expect(controls).not.toHaveTextContent('Everything else can wait');
+    expect(screen.getByRole('button', { name: 'End focus early' })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'End focus early' }), { key: 'Escape' });
+    expect(
+      screen.queryByRole('dialog', { name: 'Focus session controls' }),
+    ).not.toBeInTheDocument();
+    expect(sessionTrigger).toHaveFocus();
   });
 
   it('shows the polished completion summary after a deliberate exit', async () => {
@@ -294,7 +339,7 @@ describe('LockIn product flow', () => {
 
     expect(screen.getByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Finish' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Start another' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Start another' })).toHaveFocus();
   });
 
   it('requires one uninterrupted ten-second hold to end early', async () => {

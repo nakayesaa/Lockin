@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import type { Space } from '../../shared/data-model';
 import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES } from '../../shared/focus-limits';
 import { focusedSessionSeconds } from '../../shared/session-time';
@@ -19,6 +19,7 @@ import { PresetControl } from './components/PresetControl';
 import { SpaceDock, type DraftSpace } from './components/SpaceDock';
 import { spaceTone } from './components/spaceAppearance';
 import { SpotifyPlayer } from './components/SpotifyPlayer';
+import { useDialogFocus } from './components/useDialogFocus';
 import { useWorkspace } from './hooks/useWorkspace';
 import { useFocusSession, type SiteState } from './hooks/useFocusSession';
 import { isDesktopBridgeMissing } from './runtime-mode';
@@ -236,7 +237,7 @@ function Workspace({
                   <button type="button" onClick={onBack}>
                     Back to spaces
                   </button>
-                  <button type="button" className="is-primary" onClick={onRetry}>
+                  <button type="button" className="is-primary" autoFocus onClick={onRetry}>
                     Try again
                   </button>
                 </div>
@@ -269,6 +270,7 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
   const [holdProgress, setHoldProgress] = useState(0);
   const holdTimer = useRef<number | null>(null);
   const holdStartedAt = useRef<number | null>(null);
+  const dialogRef = useDialogFocus<HTMLDivElement>();
 
   const stopHolding = useCallback(() => {
     if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
@@ -308,6 +310,7 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
 
   return (
     <div
+      ref={dialogRef}
       className="modal-backdrop minimal-exit-overlay"
       role="dialog"
       aria-modal="true"
@@ -319,7 +322,7 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
       <button
         type="button"
         className="hold-exit-button"
-        autoFocus
+        data-autofocus
         style={{ '--hold-progress': `${holdProgress}%` } as CSSProperties}
         aria-label="Press and hold for ten seconds to end session"
         onPointerDown={(event) => {
@@ -352,6 +355,7 @@ function WebsiteDataDialog({
   onCancel: () => void;
   onClear: () => void;
 }) {
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   useEffect(() => {
     const cancelWithEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !busy) onCancel();
@@ -362,6 +366,7 @@ function WebsiteDataDialog({
 
   return (
     <div
+      ref={dialogRef}
       className="modal-backdrop website-data-backdrop"
       role="dialog"
       aria-modal="true"
@@ -378,7 +383,7 @@ function WebsiteDataDialog({
         <h2 id="website-data-heading">Clear website data?</h2>
         <p>This signs you out and removes cookies, cache, and local site storage.</p>
         <div className="website-data-dialog__actions">
-          <button type="button" disabled={busy} onClick={onCancel}>
+          <button type="button" data-autofocus disabled={busy} onClick={onCancel}>
             Cancel
           </button>
           <button type="button" className="is-destructive" disabled={busy} onClick={onClear}>
@@ -386,6 +391,47 @@ function WebsiteDataDialog({
           </button>
         </div>
       </section>
+    </div>
+  );
+}
+
+function SessionPanel({
+  remaining,
+  remainingPercent,
+  returnFocus,
+  onClose,
+  onEnd,
+}: {
+  remaining: string;
+  remainingPercent: number;
+  returnFocus: RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+  onEnd: () => void;
+}) {
+  const dialogRef = useDialogFocus<HTMLDivElement>(true, returnFocus);
+
+  return (
+    <div
+      ref={dialogRef}
+      className="focus-panel"
+      role="dialog"
+      aria-label="Focus session controls"
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return;
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <div className="focus-panel__time">
+        <strong aria-label={`${remaining} remaining`}>{remaining}</strong>
+        <span>remaining</span>
+      </div>
+      <div className="focus-panel__progress" aria-hidden="true">
+        <span style={{ width: `${remainingPercent}%` }} />
+      </div>
+      <button className="focus-panel__exit" type="button" data-autofocus onClick={onEnd}>
+        End focus early
+      </button>
     </div>
   );
 }
@@ -405,6 +451,7 @@ function LockInApp() {
   const [websiteDataOpen, setWebsiteDataOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const startTimer = useRef<number | null>(null);
+  const sessionControlRef = useRef<HTMLButtonElement>(null);
   useEffect(
     () => () => {
       if (startTimer.current !== null) window.clearTimeout(startTimer.current);
@@ -424,39 +471,61 @@ function LockInApp() {
   const remainingPercent = focus.session
     ? (focus.remainingSeconds / focus.session.durationSeconds) * 100
     : 0;
+  const timerAnnouncement =
+    focusActive &&
+    (focus.remainingSeconds <= 10 ||
+      focus.remainingSeconds === 30 ||
+      focus.remainingSeconds === 60 ||
+      focus.remainingSeconds % 300 === 0)
+      ? `${remaining} remaining`
+      : null;
   const sessionEndReason = focus.session?.endReason;
   const closeFocusedSpace = focus.closeSpace;
+  const openFocusedSpace = focus.openSpace;
+  const saveWorkspaceSpace = workspace.saveSpace;
+  const deleteWorkspaceSpace = workspace.deleteSpace;
+  const moveWorkspaceSpace = workspace.moveSpace;
 
   useEffect(() => {
     if (sessionEndReason) void closeFocusedSpace();
   }, [closeFocusedSpace, sessionEndReason]);
 
-  const openSpace = (space: Space) => {
-    if (currentScreen === 'setup') {
-      setDraft({
-        name: space.name,
-        url: space.startUrl,
-        iconDataUrl: space.iconDataUrl,
-        includeSubdomains: space.includeSubdomains,
-        accentColor: space.accentColor,
-        symbol: space.symbol,
-      });
-      setEditingSpaceId(space.id);
-      setEditorOpen(true);
-      return;
-    }
-    setActiveSpace(space);
-    setScreen('workspace');
-    void focus.openSpace(space.id).then((opened) => {
-      if (!opened) {
-        setActiveSpace(null);
-        setScreen('launcher');
-      }
-    });
-  };
+  const closeSpaceEditor = useCallback(() => {
+    setDraft(emptyDraft);
+    setEditingSpaceId(null);
+    setEditorOpen(false);
+  }, []);
+  const closeSessionMenu = useCallback(() => setSessionMenuOpen(false), []);
 
-  const saveSpace = async () => {
-    const saved = await workspace.saveSpace(editingSpaceId, {
+  const openSpace = useCallback(
+    (space: Space) => {
+      if (currentScreen === 'setup') {
+        setDraft({
+          name: space.name,
+          url: space.startUrl,
+          iconDataUrl: space.iconDataUrl,
+          includeSubdomains: space.includeSubdomains,
+          accentColor: space.accentColor,
+          symbol: space.symbol,
+        });
+        setEditingSpaceId(space.id);
+        setEditorOpen(true);
+        return;
+      }
+      setActiveSpace(space);
+      setScreen('workspace');
+      void openFocusedSpace(space.id).then((opened) => {
+        if (!opened) {
+          setActiveSpace(null);
+          setScreen('launcher');
+        }
+      });
+    },
+    [currentScreen, openFocusedSpace],
+  );
+
+  const saveSpace = useCallback(async () => {
+    const saved = await saveWorkspaceSpace(editingSpaceId, {
       name: draft.name,
       url: draft.url,
       includeSubdomains: draft.includeSubdomains,
@@ -464,12 +533,30 @@ function LockInApp() {
       accentColor: draft.accentColor,
       symbol: draft.symbol,
     });
-    if (saved) {
-      setDraft(emptyDraft);
-      setEditingSpaceId(null);
-      setEditorOpen(false);
-    }
-  };
+    if (saved) closeSpaceEditor();
+  }, [closeSpaceEditor, draft, editingSpaceId, saveWorkspaceSpace]);
+
+  const requestSpaceEditor = useCallback(() => {
+    setDraft(emptyDraft);
+    setEditingSpaceId(null);
+    setEditorOpen(true);
+  }, []);
+
+  const commitSpace = useCallback(() => void saveSpace(), [saveSpace]);
+
+  const deleteEditedSpace = useCallback(() => {
+    if (!editingSpaceId) return;
+    void deleteWorkspaceSpace(editingSpaceId).then((deleted) => {
+      if (deleted) closeSpaceEditor();
+    });
+  }, [closeSpaceEditor, deleteWorkspaceSpace, editingSpaceId]);
+
+  const moveEditedSpace = useCallback(
+    (direction: -1 | 1) => {
+      if (editingSpaceId) void moveWorkspaceSpace(editingSpaceId, direction);
+    },
+    [editingSpaceId, moveWorkspaceSpace],
+  );
 
   const finishSession = async () => {
     if (!(await focus.end())) return;
@@ -506,6 +593,11 @@ function LockInApp() {
         <SystemChrome
           remaining={focusActive && currentScreen === 'launcher' ? remaining : undefined}
         />
+      ) : null}
+      {timerAnnouncement ? (
+        <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {timerAnnouncement}
+        </span>
       ) : null}
 
       {currentScreen === 'setup' || isStarting ? (
@@ -561,6 +653,7 @@ function LockInApp() {
           </div>
           <div className="session-control-wrap">
             <button
+              ref={sessionControlRef}
               className="session-control"
               type="button"
               aria-label="Open session controls"
@@ -572,22 +665,13 @@ function LockInApp() {
               </span>
             </button>
             {sessionMenuOpen ? (
-              <div className="focus-panel" role="dialog" aria-label="Focus session controls">
-                <div className="focus-panel__time">
-                  <strong>{remaining}</strong>
-                  <span>remaining</span>
-                </div>
-                <div className="focus-panel__progress" aria-hidden="true">
-                  <span style={{ width: `${remainingPercent}%` }} />
-                </div>
-                <button
-                  className="focus-panel__exit"
-                  type="button"
-                  onClick={() => setEmergencyOpen(true)}
-                >
-                  End focus early
-                </button>
-              </div>
+              <SessionPanel
+                remaining={remaining}
+                remainingPercent={remainingPercent}
+                returnFocus={sessionControlRef}
+                onClose={closeSessionMenu}
+                onEnd={() => setEmergencyOpen(true)}
+              />
             ) : null}
           </div>
         </section>
@@ -625,6 +709,7 @@ function LockInApp() {
             <button
               className="primary-button"
               type="button"
+              autoFocus
               onClick={() => {
                 focus.dismissBlocked();
                 setActiveSpace(null);
@@ -677,6 +762,7 @@ function LockInApp() {
               <button
                 type="button"
                 className="completion-button completion-button--primary"
+                autoFocus
                 onClick={() => void startSession()}
               >
                 Start another
@@ -696,30 +782,11 @@ function LockInApp() {
           draft={draft}
           onDraftChange={setDraft}
           onOpen={openSpace}
-          onAddRequest={() => {
-            setDraft(emptyDraft);
-            setEditingSpaceId(null);
-            setEditorOpen(true);
-          }}
-          onAddCancel={() => {
-            setDraft(emptyDraft);
-            setEditingSpaceId(null);
-            setEditorOpen(false);
-          }}
-          onAddSave={() => void saveSpace()}
-          onDelete={() => {
-            if (!editingSpaceId) return;
-            void workspace.deleteSpace(editingSpaceId).then((deleted) => {
-              if (deleted) {
-                setDraft(emptyDraft);
-                setEditingSpaceId(null);
-                setEditorOpen(false);
-              }
-            });
-          }}
-          onMove={(direction) => {
-            if (editingSpaceId) void workspace.moveSpace(editingSpaceId, direction);
-          }}
+          onAddRequest={requestSpaceEditor}
+          onAddCancel={closeSpaceEditor}
+          onAddSave={commitSpace}
+          onDelete={deleteEditedSpace}
+          onMove={moveEditedSpace}
         />
       ) : null}
 

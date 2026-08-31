@@ -495,7 +495,8 @@ input:focus-visible {
   font-weight: 600;
   transition: 160ms ease;
 }
-.space-button:hover .space-tooltip {
+.space-button:hover .space-tooltip,
+.space-button:focus-visible .space-tooltip {
   transform: translate(-50%, 0);
   opacity: 1;
 }

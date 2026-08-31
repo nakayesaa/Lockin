@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import type { Space } from '../../../shared/data-model';
 import { ArrowLeftIcon, CloseIcon, ImageIcon, PlusIcon, TrashIcon } from './Icons';
@@ -50,7 +50,7 @@ function SpaceMark({ space }: { space: Space }) {
   return <span className={`space-mark space-mark--${tone}`}>{space.symbol}</span>;
 }
 
-export function SpaceDock({
+export const SpaceDock = memo(function SpaceDock({
   spaces,
   allowAdding,
   editing,
@@ -66,6 +66,24 @@ export function SpaceDock({
   onMove,
 }: SpaceDockProps) {
   const imageInput = useRef<HTMLInputElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!activeEditor) return;
+    const returnFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    nameInput.current?.focus();
+    const cancelWithEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      onAddCancel();
+    };
+    window.addEventListener('keydown', cancelWithEscape);
+    return () => {
+      window.removeEventListener('keydown', cancelWithEscape);
+      if (returnFocus?.isConnected) returnFocus.focus();
+    };
+  }, [activeEditor, onAddCancel]);
 
   const pickImage = (file: File | undefined) => {
     if (!file) return;
@@ -132,6 +150,7 @@ export function SpaceDock({
             <label>
               <span>Name</span>
               <input
+                ref={nameInput}
                 value={draft.name}
                 placeholder="Name from website"
                 maxLength={40}
@@ -222,4 +241,4 @@ export function SpaceDock({
       </nav>
     </div>
   );
-}
+});
