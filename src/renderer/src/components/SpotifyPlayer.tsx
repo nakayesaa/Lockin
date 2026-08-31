@@ -3,6 +3,43 @@ import playerWallpaperUrl from '../assets/spotify-player-wallpaper.png';
 import { PauseIcon, PlayIcon, SkipForwardIcon } from './Icons';
 import { useSpotifyPlayback } from '../hooks/useSpotifyPlayback';
 
+function SpotifyArtwork({
+  title,
+  url,
+  playing,
+  disabled,
+  onOpen,
+}: {
+  title: string;
+  url: string;
+  playing: boolean;
+  disabled: boolean;
+  onOpen: () => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <>
+      <span
+        className={`spotify-player__live-cover ${loaded ? 'is-visible' : ''}`}
+        style={{ backgroundImage: `url(${JSON.stringify(url)})` }}
+        aria-hidden="true"
+      />
+      <button
+        type="button"
+        className={`spotify-player__artwork ${loaded ? 'is-visible' : ''} ${
+          playing ? 'is-playing' : ''
+        }`}
+        aria-label={`Open ${title} in Spotify`}
+        disabled={disabled}
+        onClick={onOpen}
+      >
+        <img src={url} alt="" onLoad={() => setLoaded(true)} onError={() => setLoaded(false)} />
+      </button>
+    </>
+  );
+}
+
 export const SpotifyPlayer = memo(function SpotifyPlayer({
   focusActive,
 }: {
@@ -16,6 +53,15 @@ export const SpotifyPlayer = memo(function SpotifyPlayer({
     hour: 'numeric',
     minute: '2-digit',
   });
+  const detail =
+    spotify.error ||
+    (active
+      ? `${active.artist}${active.contextName ? ` · ${active.contextName}` : ''}`
+      : connected
+        ? 'Start playback on any Spotify device.'
+        : focusActive
+          ? 'Connect before your next focus.'
+          : null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
@@ -28,6 +74,16 @@ export const SpotifyPlayer = memo(function SpotifyPlayer({
       aria-label={spotify.preview ? 'Spotify player preview' : 'Spotify player'}
       style={{ backgroundImage: `url(${playerWallpaperUrl})` }}
     >
+      {active?.artworkUrl ? (
+        <SpotifyArtwork
+          key={active.artworkUrl}
+          title={active.title}
+          url={active.artworkUrl}
+          playing={active.isPlaying}
+          disabled={!active.spotifyUrl || spotify.busy || focusActive}
+          onOpen={() => void spotify.open()}
+        />
+      ) : null}
       <span className="spotify-player__shade" aria-hidden="true" />
       <header className="spotify-player__header">
         <span className="spotify-player__profile" aria-hidden="true">
@@ -48,18 +104,6 @@ export const SpotifyPlayer = memo(function SpotifyPlayer({
         ) : null}
       </header>
 
-      {active?.artworkUrl ? (
-        <button
-          type="button"
-          className="spotify-player__artwork"
-          aria-label={`Open ${active.title} in Spotify`}
-          disabled={!active.spotifyUrl || spotify.busy || focusActive}
-          onClick={() => void spotify.open()}
-        >
-          <img src={active.artworkUrl} alt="" />
-        </button>
-      ) : null}
-
       <div className="spotify-player__track" aria-live="polite">
         <span>{active ? 'Now playing' : connected ? 'Spotify ready' : 'Your music'}</span>
         <strong>
@@ -67,16 +111,7 @@ export const SpotifyPlayer = memo(function SpotifyPlayer({
             ? 'Checking Spotify…'
             : active?.title || (connected ? 'Ready when you are.' : 'Connect Spotify')}
         </strong>
-        <small className={spotify.error ? 'is-error' : ''}>
-          {spotify.error ||
-            (active
-              ? `${active.artist}${active.contextName ? ` · ${active.contextName}` : ''}`
-              : connected
-                ? 'Start playback on any Spotify device.'
-                : focusActive
-                  ? 'Connect before your next focus.'
-                  : 'Premium account required.')}
-        </small>
+        {detail ? <small className={spotify.error ? 'is-error' : ''}>{detail}</small> : null}
       </div>
 
       <div className="spotify-player__actions">

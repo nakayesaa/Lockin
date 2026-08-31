@@ -708,13 +708,15 @@ input:focus-visible {
 .website-data-trigger {
   position: absolute;
   z-index: 45;
-  top: 118px;
+  bottom: 28px;
   left: 28px;
   display: flex;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   align-items: center;
-  gap: 7px;
-  padding: 0 11px;
+  gap: 8px;
+  padding: 0 10px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.34);
   border-radius: 999px;
   color: rgba(245, 248, 251, 0.72);
@@ -723,9 +725,16 @@ input:focus-visible {
   backdrop-filter: blur(20px) saturate(140%);
   font-size: 10px;
   font-weight: 620;
-  transition: 180ms ease;
+  white-space: nowrap;
+  transition:
+    width 240ms var(--ease-out),
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
 }
-.website-data-trigger:hover {
+.website-data-trigger:hover,
+.website-data-trigger:focus-visible {
+  width: 112px;
   color: white;
   border-color: rgba(255, 255, 255, 0.52);
   background: rgba(8, 17, 28, 0.32);
@@ -735,8 +744,17 @@ input:focus-visible {
   opacity: 0.4;
 }
 .website-data-trigger svg {
+  flex: 0 0 14px;
   width: 12px;
   height: 12px;
+}
+.website-data-trigger span {
+  opacity: 0;
+  transition: opacity 140ms ease 20ms;
+}
+.website-data-trigger:hover span,
+.website-data-trigger:focus-visible span {
+  opacity: 1;
 }
 .preset-trigger {
   display: flex;
@@ -1786,14 +1804,30 @@ input:focus-visible {
 }
 .spotify-player__shade {
   position: absolute;
+  z-index: 1;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(15, 15, 8, 0.5), transparent 35%, rgba(18, 16, 7, 0.16) 62%),
-    linear-gradient(0deg, rgba(18, 15, 7, 0.5), transparent 52%);
+    linear-gradient(90deg, rgba(10, 10, 7, 0.6), rgba(10, 10, 7, 0.06) 72%),
+    linear-gradient(180deg, rgba(15, 15, 8, 0.48), transparent 38%, rgba(18, 16, 7, 0.2) 64%),
+    linear-gradient(0deg, rgba(18, 15, 7, 0.58), transparent 55%);
   pointer-events: none;
+}
+.spotify-player__live-cover {
+  position: absolute;
+  inset: -3px;
+  background-position: center;
+  background-size: cover;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1.035);
+  transition: opacity 520ms ease;
+}
+.spotify-player__live-cover.is-visible {
+  opacity: 1;
 }
 .spotify-player__header {
   position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1841,7 +1875,7 @@ input:focus-visible {
 }
 .spotify-player__artwork {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   top: 50px;
   right: 16px;
   width: 54px;
@@ -1849,10 +1883,22 @@ input:focus-visible {
   overflow: hidden;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 50%;
   color: inherit;
   background: rgba(20, 18, 10, 0.3);
   box-shadow: 0 9px 22px rgba(12, 11, 5, 0.24);
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.9);
+  transition:
+    opacity 260ms ease,
+    transform 420ms var(--ease-out);
+}
+.spotify-player__artwork.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
 }
 .spotify-player__artwork:disabled {
   cursor: default;
@@ -1861,10 +1907,15 @@ input:focus-visible {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.spotify-player__artwork.is-playing img {
+  animation: spotify-disc-spin 16s linear infinite;
 }
 .spotify-player__track {
   position: relative;
+  z-index: 2;
   display: flex;
   max-width: 185px;
   flex-direction: column;
@@ -1899,6 +1950,7 @@ input:focus-visible {
 }
 .spotify-player__actions {
   position: absolute;
+  z-index: 2;
   right: 13px;
   bottom: 13px;
   left: 13px;
@@ -1956,6 +2008,11 @@ input:focus-visible {
   }
   to {
     opacity: 1;
+  }
+}
+@keyframes spotify-disc-spin {
+  to {
+    transform: rotate(1turn);
   }
 }
 @keyframes popover-in {

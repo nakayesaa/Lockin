@@ -622,7 +622,7 @@ function LockInApp() {
                   onClick={() => setWebsiteDataOpen(true)}
                 >
                   <TrashIcon />
-                  Website data
+                  <span>Website data</span>
                 </button>
               ) : null}
             </>

@@ -305,11 +305,23 @@ describe('LockIn product flow', () => {
     });
 
     render(<App />);
+    expect(screen.queryByText('Premium account required.')).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Connect Spotify' }));
     expect(await screen.findByText('A Moment Apart')).toBeVisible();
     expect(screen.getByText('ODESZA · Deep Focus')).toBeVisible();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open A Moment Apart in Spotify' }));
+    const artwork = screen.getByRole('button', { name: 'Open A Moment Apart in Spotify' });
+    const artworkImage = artwork.querySelector('img');
+    const liveCover = document.querySelector('.spotify-player__live-cover');
+    expect(artworkImage).not.toBeNull();
+    expect(artwork).not.toHaveClass('is-visible');
+    fireEvent.error(artworkImage!);
+    expect(artwork).not.toHaveClass('is-visible');
+    fireEvent.load(artworkImage!);
+    expect(artwork).toHaveClass('is-visible');
+    expect(liveCover).toHaveClass('is-visible');
+
+    fireEvent.click(artwork);
     expect(openSpotify).toHaveBeenCalledWith('https://open.spotify.com/track/track-id');
     const pause = screen.getByRole('button', { name: 'Pause music' });
     await waitFor(() => expect(pause).toBeEnabled());
