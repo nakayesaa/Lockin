@@ -71,7 +71,8 @@ export function registerIpcHandlers(
     });
     runtime.reset();
     const result = sessionResultSchema.parse(await sessions.start(preset, spaces));
-    runtime.enterFocus();
+    if (!result.session) throw new Error('Focus session did not start');
+    runtime.enterFocus(result.session);
     return result;
   });
   ipcMain.handle(IPC_CHANNELS.sessionEnd, async () => {

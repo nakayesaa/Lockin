@@ -47,6 +47,9 @@ describe('shared IPC contracts', () => {
     expect(
       sessionEventSchema.parse({ type: 'navigation-blocked', destination: 'example.com' }),
     ).toEqual({ type: 'navigation-blocked', destination: 'example.com' });
+    expect(sessionEventSchema.parse({ type: 'session-completed' })).toEqual({
+      type: 'session-completed',
+    });
     expect(
       sessionEventSchema.parse({
         type: 'site-state-changed',

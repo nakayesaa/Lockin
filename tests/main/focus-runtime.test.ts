@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 import type { SessionRecord } from '../../src/shared/session-model';
 
@@ -101,29 +101,56 @@ function activeSession(): SessionRecord {
 
 function setup() {
   const session = activeSession();
+  const mainListeners = new Map<string, Array<(...args: unknown[]) => void>>();
+  let fullScreen = false;
   const window = {
     contentView: { addChildView: vi.fn(), removeChildView: vi.fn() },
-    webContents: { focus: vi.fn() },
+    webContents: {
+      focus: vi.fn(),
+      on: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+        mainListeners.set(event, [...(mainListeners.get(event) ?? []), listener]);
+      }),
+      off: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+        mainListeners.set(
+          event,
+          (mainListeners.get(event) ?? []).filter((candidate) => candidate !== listener),
+        );
+      }),
+      emit: (event: string, ...args: unknown[]) => {
+        mainListeners.get(event)?.forEach((listener) => listener(...args));
+      },
+    },
     getContentSize: () => [1200, 800],
     isDestroyed: () => false,
-    isFullScreen: () => false,
-    setFullScreen: vi.fn(),
+    isFullScreen: () => fullScreen,
+    setFullScreen: vi.fn((value: boolean) => {
+      fullScreen = value;
+    }),
+    isMinimized: vi.fn(() => false),
+    restore: vi.fn(),
+    show: vi.fn(),
+    focus: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
     once: vi.fn(),
   };
   const onNavigationBlocked = vi.fn();
   const onSiteStateChanged = vi.fn();
-  const runtime = new FocusRuntime(
-    window as never,
-    { getSession: vi.fn().mockResolvedValue({ session, notice: null }) } as never,
-    { onNavigationBlocked, onSiteStateChanged },
-  );
+  const onSessionCompleted = vi.fn();
+  const sessions = { getSession: vi.fn().mockResolvedValue({ session, notice: null }) };
+  const runtime = new FocusRuntime(window as never, sessions as never, {
+    onNavigationBlocked,
+    onSiteStateChanged,
+    onSessionCompleted,
+  });
   return {
     runtime,
     window,
+    session,
+    sessions,
     onNavigationBlocked,
     onSiteStateChanged,
+    onSessionCompleted,
   };
 }
 
@@ -131,6 +158,10 @@ describe('FocusRuntime website lifecycle', () => {
   beforeEach(() => {
     electron.views.length = 0;
     electron.nextLoadError = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('owns only one website view and disposes it when switching or closing', async () => {
@@ -170,6 +201,57 @@ describe('FocusRuntime website lifecycle', () => {
 
     runtime.closeSpace();
     expect(electron.views[1]!.webContents.close).toHaveBeenCalledOnce();
+  });
+
+  it('owns focus window shortcuts and completes an expired session in the main process', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-30T08:00:00.000Z'));
+    const { runtime, window, session, sessions, onSessionCompleted } = setup();
+    const completed = { ...session, endedAt: session.endsAt, endReason: 'completed' as const };
+
+    runtime.enterFocus(session);
+    await runtime.openSpace('chatgpt');
+    sessions.getSession.mockResolvedValue({ session: completed, notice: null });
+    expect(window.setFullScreen).toHaveBeenCalledWith(true);
+    expect(window.focus).toHaveBeenCalledOnce();
+    expect(window.webContents.focus).toHaveBeenCalledTimes(2);
+
+    const blockedShortcut = { preventDefault: vi.fn() };
+    window.webContents.emit('before-input-event', blockedShortcut, {
+      type: 'keyDown',
+      key: 'w',
+      control: true,
+      meta: false,
+    });
+    expect(blockedShortcut.preventDefault).toHaveBeenCalledOnce();
+
+    const allowedClose = { preventDefault: vi.fn() };
+    window.webContents.emit('before-input-event', allowedClose, {
+      type: 'keyDown',
+      key: 'F4',
+      alt: true,
+      control: false,
+      meta: false,
+    });
+    expect(allowedClose.preventDefault).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(sessions.getSession).toHaveBeenCalledTimes(2);
+    expect(electron.views[0]!.webContents.close).toHaveBeenCalledOnce();
+    expect(window.setFullScreen).toHaveBeenLastCalledWith(false);
+    expect(onSessionCompleted).toHaveBeenCalledOnce();
+  });
+
+  it('leaves the durable session untouched when the application window closes', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-30T08:00:00.000Z'));
+    const { runtime, session, sessions } = setup();
+
+    runtime.enterFocus(session);
+    runtime.destroy();
+    vi.advanceTimersByTime(3_600_000);
+
+    expect(sessions.getSession).not.toHaveBeenCalled();
   });
 
   it('blocks every outside top-level navigation while leaving subresources alone', async () => {

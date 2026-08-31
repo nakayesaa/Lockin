@@ -52,6 +52,7 @@ describe('SessionStore', () => {
     });
     expect(started.session?.spaces.map(({ id }) => id)).toEqual(['leetcode', 'chatgpt', 'youtube']);
 
+    now = new Date('2026-08-30T01:20:00.000Z');
     const restored = sessionStore();
     await expect(restored.initialize()).resolves.toEqual(started);
   });

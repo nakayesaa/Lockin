@@ -65,7 +65,18 @@ export function useFocusSession(): FocusSessionController {
     let mounted = true;
     const unsubscribe = api.onSessionEvent?.((event) => {
       if (!mounted) return;
-      if (event.type === 'navigation-blocked') {
+      if (event.type === 'session-completed') {
+        setSiteState({ status: 'idle' });
+        setBlockedDestination(null);
+        void api
+          .getSession()
+          .then((result) => {
+            if (mounted) publish(result.session);
+          })
+          .catch((error: unknown) => {
+            if (mounted) setNotice(errorMessage(error));
+          });
+      } else if (event.type === 'navigation-blocked') {
         setSiteState({ status: 'idle' });
         setBlockedDestination(event.destination);
       } else if (event.status === 'failed') {
@@ -98,7 +109,7 @@ export function useFocusSession(): FocusSessionController {
     const tick = () => {
       const remaining = remainingSessionSeconds(session);
       setRemainingSeconds(remaining);
-      if (remaining === 0) {
+      if (remaining === 0 && !window.lockIn?.getSession) {
         setSession({ ...session, endedAt: session.endsAt, endReason: 'completed' });
       }
     };

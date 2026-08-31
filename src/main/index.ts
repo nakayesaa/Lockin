@@ -10,60 +10,77 @@ import { SessionStore } from './session-store';
 import { IPC_CHANNELS } from '../shared/contracts';
 
 const logger = createLogger('main');
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 app.setName('LockIn');
 app.setAppUserModelId('com.lockin.desktop');
 
-app.whenReady().then(async () => {
-  const paths = getAppPaths();
-  logger.info('Application ready', {
-    version: app.getVersion(),
-    platform: process.platform,
-    packaged: app.isPackaged,
-    userDataConfigured: Boolean(paths.userData),
-  });
+if (!hasSingleInstanceLock) app.quit();
 
-  const workspaceStore = new WorkspaceStore(join(paths.userData, 'workspace.json'));
-  const sessionStore = new SessionStore(join(paths.userData, 'session.json'));
-  await workspaceStore.initialize();
-  await sessionStore.initialize();
+app.on('second-instance', () => {
+  const window = BrowserWindow.getAllWindows()[0];
+  if (!window) return;
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+});
 
-  const openWindow = () =>
-    createMainWindow((window) => {
-      const runtime = new FocusRuntime(window, sessionStore, {
-        onNavigationBlocked: (url) => {
-          let destination = 'Unknown destination';
-          try {
-            destination = new URL(url).hostname || destination;
-          } catch {
-            // Keep the safe fallback for malformed navigation attempts.
-          }
-          window.webContents.send(IPC_CHANNELS.sessionEvent, {
-            type: 'navigation-blocked',
-            destination,
-          });
-        },
-        onSiteStateChanged: (state) => {
-          window.webContents.send(IPC_CHANNELS.sessionEvent, {
-            type: 'site-state-changed',
-            ...state,
-          });
-        },
-      });
-      registerIpcHandlers(workspaceStore, sessionStore, runtime);
-      void sessionStore.peekSession().then((session) => {
-        if (session?.endReason === null) runtime.enterFocus();
-      });
+if (hasSingleInstanceLock)
+  void app.whenReady().then(async () => {
+    const paths = getAppPaths();
+    logger.info('Application ready', {
+      version: app.getVersion(),
+      platform: process.platform,
+      packaged: app.isPackaged,
+      userDataConfigured: Boolean(paths.userData),
     });
 
-  await openWindow();
+    const workspaceStore = new WorkspaceStore(join(paths.userData, 'workspace.json'));
+    const sessionStore = new SessionStore(join(paths.userData, 'session.json'));
+    await workspaceStore.initialize();
+    await sessionStore.initialize();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      void openWindow();
-    }
+    const openWindow = () =>
+      createMainWindow((window) => {
+        const runtime = new FocusRuntime(window, sessionStore, {
+          onNavigationBlocked: (url) => {
+            let destination = 'Unknown destination';
+            try {
+              destination = new URL(url).hostname || destination;
+            } catch {
+              // Keep the safe fallback for malformed navigation attempts.
+            }
+            window.webContents.send(IPC_CHANNELS.sessionEvent, {
+              type: 'navigation-blocked',
+              destination,
+            });
+          },
+          onSiteStateChanged: (state) => {
+            window.webContents.send(IPC_CHANNELS.sessionEvent, {
+              type: 'site-state-changed',
+              ...state,
+            });
+          },
+          onSessionCompleted: () => {
+            window.webContents.send(IPC_CHANNELS.sessionEvent, {
+              type: 'session-completed',
+            });
+          },
+        });
+        registerIpcHandlers(workspaceStore, sessionStore, runtime);
+        void sessionStore.peekSession().then((session) => {
+          if (session?.endReason === null) runtime.enterFocus(session);
+        });
+      });
+
+    await openWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        void openWindow();
+      }
+    });
   });
-});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, screen, session as electronSession } from 'electron';
 import type { Space } from '../shared/data-model';
+import type { SessionRecord } from '../shared/session-model';
 import { findAllowedSpaceForUrl } from '../shared/website-rules';
 import { createLogger } from './logger';
 import type { SessionStore } from './session-store';
@@ -12,6 +13,7 @@ const configuredSessions = new WeakSet<object>();
 interface FocusRuntimeOptions {
   readonly onNavigationBlocked: (url: string) => void;
   readonly onSiteStateChanged: (state: SiteState) => void;
+  readonly onSessionCompleted: () => void;
 }
 
 export type SiteState =
@@ -19,10 +21,17 @@ export type SiteState =
   | { readonly status: 'failed'; readonly spaceId: string; readonly message: string };
 
 export class FocusRuntime {
+  private activeSession: SessionRecord | null = null;
+  private completionTimer: ReturnType<typeof setTimeout> | null = null;
   private siteView: WebContentsView | null = null;
   private siteControlsVisible = false;
   private loadSequence = 0;
   private readonly logger = createLogger('focus-runtime');
+  private readonly blockFocusShortcut = (event: Electron.Event, input: Electron.Input) => {
+    if (!this.activeSession || input.type !== 'keyDown') return;
+    const key = input.key.toLowerCase();
+    if (key === 'f11' || ((input.control || input.meta) && key === 'w')) event.preventDefault();
+  };
   private readonly resize: () => void;
 
   constructor(
@@ -41,6 +50,7 @@ export class FocusRuntime {
     }
 
     this.resize = () => this.layoutActiveView();
+    window.webContents.on('before-input-event', this.blockFocusShortcut);
     window.on('resize', this.resize);
     window.on('enter-full-screen', this.resize);
     window.on('leave-full-screen', this.resize);
@@ -66,11 +76,20 @@ export class FocusRuntime {
     await this.load(view, space.id, space.startUrl);
   }
 
-  enterFocus(): void {
+  enterFocus(session: SessionRecord): void {
+    if (session.endReason !== null) return;
+    this.activeSession = structuredClone(session);
+    this.scheduleCompletion(session);
+    if (this.window.isMinimized()) this.window.restore();
+    this.window.show();
     if (!this.window.isFullScreen()) this.window.setFullScreen(true);
+    this.window.focus();
+    this.window.webContents.focus();
   }
 
   exitFocus(): void {
+    this.clearCompletionTimer();
+    this.activeSession = null;
     if (this.window.isFullScreen()) this.window.setFullScreen(false);
   }
 
@@ -98,6 +117,9 @@ export class FocusRuntime {
   }
 
   destroy(): void {
+    this.clearCompletionTimer();
+    this.activeSession = null;
+    this.window.webContents.off('before-input-event', this.blockFocusShortcut);
     this.window.off('resize', this.resize);
     this.window.off('enter-full-screen', this.resize);
     this.window.off('leave-full-screen', this.resize);
@@ -105,11 +127,53 @@ export class FocusRuntime {
     this.reset();
   }
 
+  private scheduleCompletion(session: SessionRecord): void {
+    this.clearCompletionTimer();
+    const delay = Math.max(0, Date.parse(session.endsAt) - Date.now());
+    this.completionTimer = setTimeout(() => {
+      this.completionTimer = null;
+      void this.completeExpiredSession(session.id);
+    }, delay);
+  }
+
+  private async completeExpiredSession(sessionId: string): Promise<void> {
+    if (this.activeSession?.id !== sessionId) return;
+    try {
+      const { session } = await this.sessions.getSession();
+      if (!session || session.id !== sessionId) return;
+      if (session.endReason === null) {
+        this.activeSession = session;
+        this.scheduleCompletion(session);
+        return;
+      }
+
+      this.reset();
+      this.exitFocus();
+      if (session.endReason === 'completed') this.options.onSessionCompleted();
+    } catch (error) {
+      this.logger.error('Could not complete expired focus session', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+      if (this.activeSession?.id === sessionId) {
+        this.completionTimer = setTimeout(() => {
+          this.completionTimer = null;
+          void this.completeExpiredSession(sessionId);
+        }, 1_000);
+      }
+    }
+  }
+
+  private clearCompletionTimer(): void {
+    if (this.completionTimer !== null) clearTimeout(this.completionTimer);
+    this.completionTimer = null;
+  }
+
   private createView(space: Space, allowedSpaces: Space[]): WebContentsView {
     const view = new WebContentsView(createSiteViewOptions());
     view.setBackgroundColor('#ffffff');
     const { webContents } = view;
     webContents.setIgnoreMenuShortcuts(true);
+    webContents.on('before-input-event', this.blockFocusShortcut);
     webContents.on('before-mouse-event', (_event, mouse) => {
       if (mouse.type !== 'mouseMove' || this.siteView !== view || this.siteControlsVisible) return;
       const [width = 0] = this.window.getContentSize();

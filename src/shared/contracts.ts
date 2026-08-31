@@ -61,6 +61,11 @@ export const sessionResultSchema = z
 export const sessionEventSchema = z.union([
   z
     .object({
+      type: z.literal('session-completed'),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal('navigation-blocked'),
       destination: z.string().min(1).max(253),
     })

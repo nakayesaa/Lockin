@@ -188,6 +188,26 @@ describe('LockIn product flow', () => {
       await screen.findByRole('heading', { name: 'This destination can wait.' }),
     ).toBeVisible();
     expect(screen.getByText(/example\.com isn’t one of the spaces/i)).toBeVisible();
+
+    const endsAt = new Date(startedAt.getTime() + preset.durationMinutes * 60_000).toISOString();
+    const getSession = window.lockIn?.getSession as ReturnType<typeof vi.fn>;
+    getSession.mockResolvedValue({
+      session: {
+        version: CURRENT_SESSION_VERSION,
+        id: 'restored-session',
+        presetId: preset.id,
+        presetName: preset.name,
+        durationSeconds: preset.durationMinutes * 60,
+        startedAt: startedAt.toISOString(),
+        endsAt,
+        endedAt: endsAt,
+        endReason: 'completed',
+        spaces: state.spaces,
+      },
+      notice: null,
+    });
+    act(() => emit?.({ type: 'session-completed' }));
+    expect(await screen.findByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
   });
 
   it('previews the floating album player interactions', () => {
@@ -267,5 +287,28 @@ describe('LockIn product flow', () => {
     expect(screen.getByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Finish' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Start another' })).toBeVisible();
+  });
+
+  it('requires one uninterrupted ten-second hold to end early', async () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start focus' }));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    fireEvent.click(screen.getByRole('button', { name: 'Open session controls' }));
+    fireEvent.click(screen.getByRole('button', { name: 'End focus early' }));
+    const hold = screen.getByRole('button', {
+      name: 'Press and hold for ten seconds to end session',
+    });
+
+    fireEvent.pointerDown(hold);
+    await act(async () => vi.advanceTimersByTimeAsync(5_000));
+    fireEvent.pointerUp(hold);
+    fireEvent.pointerDown(hold);
+    await act(async () => vi.advanceTimersByTimeAsync(5_100));
+    expect(screen.getByRole('dialog', { name: 'End focus session' })).toBeVisible();
+
+    await act(async () => vi.advanceTimersByTimeAsync(4_900));
+    expect(screen.getByRole('heading', { name: 'That was time well spent.' })).toBeVisible();
   });
 });

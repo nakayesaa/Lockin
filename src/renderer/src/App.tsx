@@ -235,28 +235,36 @@ function Workspace({
 function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () => void }) {
   const [holdProgress, setHoldProgress] = useState(0);
   const holdTimer = useRef<number | null>(null);
+  const holdStartedAt = useRef<number | null>(null);
 
   const stopHolding = useCallback(() => {
     if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
     holdTimer.current = null;
+    holdStartedAt.current = null;
     setHoldProgress(0);
   }, []);
 
   const startHolding = useCallback(() => {
     if (holdTimer.current !== null) return;
-    let progress = 0;
+    holdStartedAt.current = performance.now();
     holdTimer.current = window.setInterval(() => {
-      progress = Math.min(100, progress + 1);
+      if (holdStartedAt.current === null) return;
+      const progress = Math.min(100, ((performance.now() - holdStartedAt.current) / 10_000) * 100);
       setHoldProgress(progress);
-      if (progress === 100) {
+      if (progress >= 100) {
         if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
         holdTimer.current = null;
+        holdStartedAt.current = null;
         onExit();
       }
-    }, 100);
+    }, 50);
   }, [onExit]);
 
   useEffect(() => stopHolding, [stopHolding]);
+  useEffect(() => {
+    window.addEventListener('blur', stopHolding);
+    return () => window.removeEventListener('blur', stopHolding);
+  }, [stopHolding]);
   useEffect(() => {
     const cancelWithEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onCancel();

@@ -88,6 +88,8 @@ describe('preload API', () => {
       status: 'ready',
       spaceId: 'chatgpt',
     });
+    wrapped({}, { type: 'session-completed' });
+    expect(listener).toHaveBeenLastCalledWith({ type: 'session-completed' });
     unsubscribe();
     expect(bridge.removeListener).toHaveBeenCalledWith(IPC_CHANNELS.sessionEvent, wrapped);
   });
