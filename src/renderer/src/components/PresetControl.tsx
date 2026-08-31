@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Preset } from '../../../shared/data-model';
-import { CheckIcon, ChevronDownIcon, CopyIcon, PlusIcon, TrashIcon } from './Icons';
+import { CheckIcon, CopyIcon, PlusIcon, TrashIcon } from './Icons';
 import { useDialogFocus } from './useDialogFocus';
 
 interface PresetControlProps {
@@ -54,9 +54,7 @@ export function PresetControl({
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="preset-trigger__dot" aria-hidden="true" />
         <span>{activePreset.name}</span>
-        <ChevronDownIcon />
       </button>
 
       {open ? (
