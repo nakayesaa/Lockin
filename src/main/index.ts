@@ -92,7 +92,18 @@ async function startApplication(): Promise<void> {
       });
     });
 
-  await openWindow();
+  const window = await openWindow();
+
+  if (app.isPackaged && process.argv.includes('--smoke-test')) {
+    const bridgeAvailable = await window.webContents.executeJavaScript(
+      "typeof window.lockIn === 'object'",
+      true,
+    );
+    if (!bridgeAvailable) throw new Error('Packaged preload bridge is unavailable');
+    logger.info('Packaged application smoke test passed');
+    app.quit();
+    return;
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -112,6 +123,7 @@ if (hasSingleInstanceLock) {
         'LockIn couldn’t start',
         `Restart LockIn and try again. If the problem continues, check ${app.getPath('logs')}.`,
       );
+      process.exitCode = 1;
       app.quit();
     });
 }

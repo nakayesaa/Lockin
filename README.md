@@ -57,6 +57,7 @@ Electron 44 downloads its platform binary during the root `postinstall` step. np
 | `npm run test:watch`   | Run tests in watch mode                              |
 | `npm run build`        | Typecheck and compile all Electron processes         |
 | `npm run check`        | Run the complete local quality gate                  |
+| `npm run package:win`  | Build and verify the Windows x64 installer           |
 | `npm start`            | Preview a previously built application               |
 
 Before committing production code, run:
@@ -64,6 +65,26 @@ Before committing production code, run:
 ```bash
 npm run check
 ```
+
+## Windows installer
+
+Build the production installer from a native Windows terminal:
+
+```bash
+npm ci
+npm run package:win
+```
+
+The verified outputs are written to `release/`:
+
+```text
+LockIn-Setup-1.0.0-x64.exe
+LockIn-Setup-1.0.0-x64.exe.sha256
+```
+
+The installer is per-user, adds Start Menu and desktop shortcuts, and preserves LockIn's data when the app is upgraded or uninstalled. Packaged startup logs are written beneath Electron's `logs` directory inside the LockIn user-data folder. The installer is currently unsigned, so Windows SmartScreen may show an unknown-publisher warning.
+
+Pushing a tag that exactly matches the package version, such as `v1.0.0`, runs the Windows quality gate, builds the installer, smoke-tests the packaged app, and publishes both verified files to a GitHub Release. A manual workflow run builds the same downloadable artifact without publishing a release.
 
 ## Architecture
 
