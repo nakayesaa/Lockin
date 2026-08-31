@@ -147,4 +147,47 @@ describe('SpotifyService', () => {
     await service.open('https://open.spotify.com/track/id');
     expect(openExternal).toHaveBeenCalledWith('https://open.spotify.com/track/id');
   });
+
+  it('supports the reduced 2026 episode payload without a publisher field', async () => {
+    const tokens = tokenRepository({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: Date.now() + 3_600_000,
+      scope: 'scope',
+    });
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          is_playing: false,
+          progress_ms: 500,
+          item: {
+            type: 'episode',
+            name: 'Deep Questions',
+            duration_ms: 60_000,
+            external_urls: { spotify: 'https://open.spotify.com/episode/episode-id' },
+            show: {
+              name: 'The Focus Show',
+              images: [{ url: 'https://i.scdn.co/show.jpg', width: null, height: null }],
+            },
+          },
+          context: null,
+        }),
+      ),
+    );
+    const service = new SpotifyService({
+      clientId: 'client-id',
+      scopes: [],
+      tokens,
+      openExternal: vi.fn(),
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    await expect(service.getPlayback()).resolves.toEqual(
+      expect.objectContaining({
+        status: 'active',
+        title: 'Deep Questions',
+        artist: 'The Focus Show',
+      }),
+    );
+  });
 });

@@ -28,7 +28,7 @@ const playbackSchema = z
         show: z
           .object({
             name: z.string().min(1),
-            publisher: z.string().min(1),
+            publisher: z.string().min(1).optional(),
             images: z.array(imageSchema),
           })
           .passthrough()
