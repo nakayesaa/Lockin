@@ -34,7 +34,18 @@ export class FocusRuntime {
   private readonly blockFocusShortcut = (event: Electron.Event, input: Electron.Input) => {
     if (!this.activeSession || input.type !== 'keyDown') return;
     const key = input.key.toLowerCase();
-    if (key === 'f11' || ((input.control || input.meta) && key === 'w')) event.preventDefault();
+    const closeShortcut =
+      (input.alt && key === 'f4') ||
+      ((input.control || input.meta) && (key === 'w' || key === 'q'));
+    if (key === 'f11' || closeShortcut) event.preventDefault();
+  };
+  private readonly blockWindowClose = (event: Electron.Event) => {
+    if (!this.activeSession) return;
+    event.preventDefault();
+    this.enforceFocusWindow();
+  };
+  private readonly restoreFocusWindow = () => {
+    if (this.activeSession) this.enforceFocusWindow();
   };
   private readonly resize: () => void;
 
@@ -55,6 +66,9 @@ export class FocusRuntime {
 
     this.resize = () => this.layoutActiveView();
     window.webContents.on('before-input-event', this.blockFocusShortcut);
+    window.on('close', this.blockWindowClose);
+    window.on('leave-full-screen', this.restoreFocusWindow);
+    window.on('minimize', this.restoreFocusWindow);
     window.on('resize', this.resize);
     window.on('enter-full-screen', this.resize);
     window.on('leave-full-screen', this.resize);
@@ -86,17 +100,17 @@ export class FocusRuntime {
     this.monotonicDeadline =
       performance.now() + Math.max(0, Date.parse(session.endsAt) - Date.now());
     this.scheduleCompletion(session);
-    if (this.window.isMinimized()) this.window.restore();
-    this.window.show();
-    if (!this.window.isFullScreen()) this.window.setFullScreen(true);
-    this.window.focus();
-    this.window.webContents.focus();
+    this.window.setClosable(false);
+    this.window.setMinimizable(false);
+    this.enforceFocusWindow();
   }
 
   exitFocus(): void {
     this.clearCompletionTimer();
     this.activeSession = null;
     this.monotonicDeadline = 0;
+    this.window.setClosable(true);
+    this.window.setMinimizable(true);
     if (this.window.isFullScreen()) this.window.setFullScreen(false);
   }
 
@@ -128,6 +142,9 @@ export class FocusRuntime {
     this.activeSession = null;
     this.monotonicDeadline = 0;
     this.window.webContents.off('before-input-event', this.blockFocusShortcut);
+    this.window.off('close', this.blockWindowClose);
+    this.window.off('leave-full-screen', this.restoreFocusWindow);
+    this.window.off('minimize', this.restoreFocusWindow);
     this.window.off('resize', this.resize);
     this.window.off('enter-full-screen', this.resize);
     this.window.off('leave-full-screen', this.resize);
@@ -182,6 +199,15 @@ export class FocusRuntime {
   private clearCompletionTimer(): void {
     if (this.completionTimer !== null) clearTimeout(this.completionTimer);
     this.completionTimer = null;
+  }
+
+  private enforceFocusWindow(): void {
+    if (this.window.isDestroyed()) return;
+    if (this.window.isMinimized()) this.window.restore();
+    this.window.show();
+    if (!this.window.isFullScreen()) this.window.setFullScreen(true);
+    this.window.focus();
+    this.window.webContents.focus();
   }
 
   private createView(space: Space, allowedSpaces: Space[]): WebContentsView {

@@ -27,6 +27,7 @@ import { isDesktopBridgeMissing } from './runtime-mode';
 type AppScreen = 'setup' | 'launcher' | 'workspace' | 'blocked' | 'complete';
 
 const durationOptions = [25, 45, 60, 90];
+const HOLD_TO_END_MS = 30_000;
 const emptyDraft: DraftSpace = {
   name: '',
   url: '',
@@ -284,7 +285,10 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
     holdStartedAt.current = performance.now();
     holdTimer.current = window.setInterval(() => {
       if (holdStartedAt.current === null) return;
-      const progress = Math.min(100, ((performance.now() - holdStartedAt.current) / 10_000) * 100);
+      const progress = Math.min(
+        100,
+        ((performance.now() - holdStartedAt.current) / HOLD_TO_END_MS) * 100,
+      );
       setHoldProgress(progress);
       if (progress >= 100) {
         if (holdTimer.current !== null) window.clearInterval(holdTimer.current);
@@ -324,7 +328,7 @@ function EmergencyExit({ onCancel, onExit }: { onCancel: () => void; onExit: () 
         className="hold-exit-button"
         data-autofocus
         style={{ '--hold-progress': `${holdProgress}%` } as CSSProperties}
-        aria-label="Press and hold for ten seconds to end session"
+        aria-label="Press and hold for thirty seconds to end session"
         onPointerDown={(event) => {
           event.stopPropagation();
           startHolding();

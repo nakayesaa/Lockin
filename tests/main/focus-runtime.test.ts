@@ -102,6 +102,7 @@ function activeSession(): SessionRecord {
 function setup() {
   const session = activeSession();
   const mainListeners = new Map<string, Array<(...args: unknown[]) => void>>();
+  const windowListeners = new Map<string, Array<(...args: unknown[]) => void>>();
   let fullScreen = false;
   const window = {
     contentView: { addChildView: vi.fn(), removeChildView: vi.fn() },
@@ -126,13 +127,27 @@ function setup() {
     setFullScreen: vi.fn((value: boolean) => {
       fullScreen = value;
     }),
+    setClosable: vi.fn(),
+    setMinimizable: vi.fn(),
     isMinimized: vi.fn(() => false),
     restore: vi.fn(),
     show: vi.fn(),
     focus: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    once: vi.fn(),
+    on: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+      windowListeners.set(event, [...(windowListeners.get(event) ?? []), listener]);
+    }),
+    off: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+      windowListeners.set(
+        event,
+        (windowListeners.get(event) ?? []).filter((candidate) => candidate !== listener),
+      );
+    }),
+    once: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+      windowListeners.set(event, [...(windowListeners.get(event) ?? []), listener]);
+    }),
+    emit: (event: string, ...args: unknown[]) => {
+      windowListeners.get(event)?.forEach((listener) => listener(...args));
+    },
   };
   const onNavigationBlocked = vi.fn();
   const onSiteStateChanged = vi.fn();
@@ -228,6 +243,8 @@ describe('FocusRuntime website lifecycle', () => {
     await runtime.openSpace('chatgpt');
     sessions.complete.mockResolvedValue({ session: completed, notice: null });
     expect(window.setFullScreen).toHaveBeenCalledWith(true);
+    expect(window.setClosable).toHaveBeenCalledWith(false);
+    expect(window.setMinimizable).toHaveBeenCalledWith(false);
     expect(window.focus).toHaveBeenCalledOnce();
     expect(window.webContents.focus).toHaveBeenCalledTimes(2);
 
@@ -240,22 +257,36 @@ describe('FocusRuntime website lifecycle', () => {
     });
     expect(blockedShortcut.preventDefault).toHaveBeenCalledOnce();
 
-    const allowedClose = { preventDefault: vi.fn() };
-    window.webContents.emit('before-input-event', allowedClose, {
+    const blockedAltF4 = { preventDefault: vi.fn() };
+    window.webContents.emit('before-input-event', blockedAltF4, {
       type: 'keyDown',
       key: 'F4',
       alt: true,
       control: false,
       meta: false,
     });
-    expect(allowedClose.preventDefault).not.toHaveBeenCalled();
+    expect(blockedAltF4.preventDefault).toHaveBeenCalledOnce();
+
+    const blockedClose = { preventDefault: vi.fn() };
+    window.emit('close', blockedClose);
+    expect(blockedClose.preventDefault).toHaveBeenCalledOnce();
+
+    window.setFullScreen(false);
+    window.emit('leave-full-screen');
+    expect(window.setFullScreen).toHaveBeenLastCalledWith(true);
 
     await vi.advanceTimersByTimeAsync(1_000);
     expect(sessions.getSession).toHaveBeenCalledOnce();
     expect(sessions.complete).toHaveBeenCalledWith(session.id);
     expect(electron.views[0]!.webContents.close).toHaveBeenCalledOnce();
     expect(window.setFullScreen).toHaveBeenLastCalledWith(false);
+    expect(window.setClosable).toHaveBeenLastCalledWith(true);
+    expect(window.setMinimizable).toHaveBeenLastCalledWith(true);
     expect(onSessionCompleted).toHaveBeenCalledOnce();
+
+    const allowedClose = { preventDefault: vi.fn() };
+    window.emit('close', allowedClose);
+    expect(allowedClose.preventDefault).not.toHaveBeenCalled();
   });
 
   it('uses monotonic elapsed time so moving the wall clock backwards cannot extend focus', async () => {
