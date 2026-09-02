@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LockInApi, WorkspaceResult } from '../../../shared/contracts';
 import { createDefaultWorkspace } from '../../../shared/default-workspace';
 import type {
+  HeroCopy,
   PersistedState,
   Preset,
   PresetInput,
@@ -26,6 +27,7 @@ export interface WorkspaceController {
   readonly saving: boolean;
   readonly notice: string | null;
   dismissNotice(): void;
+  updateHeroCopy(input: HeroCopy): Promise<boolean>;
   saveSpace(id: string | null, input: SpaceInput): Promise<boolean>;
   deleteSpace(id: string): Promise<boolean>;
   moveSpace(id: string, direction: -1 | 1): Promise<boolean>;
@@ -155,6 +157,18 @@ export function useWorkspace(): WorkspaceController {
         },
       );
     },
+    [run],
+  );
+
+  const updateHeroCopy = useCallback(
+    (input: HeroCopy) =>
+      run(
+        (api) => api.updateHeroCopy(input),
+        (draft) => {
+          draft.settings.hero = input;
+          return draft;
+        },
+      ),
     [run],
   );
 
@@ -321,6 +335,7 @@ export function useWorkspace(): WorkspaceController {
     saving,
     notice,
     dismissNotice: () => setNotice(null),
+    updateHeroCopy,
     saveSpace,
     deleteSpace,
     moveSpace,

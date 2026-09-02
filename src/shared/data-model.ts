@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES } from './focus-limits';
 import { normalizeWebsiteUrl } from './website-rules';
 
-export const CURRENT_DATA_VERSION = 1 as const;
+export const CURRENT_DATA_VERSION = 2 as const;
+
+export const DEFAULT_HERO_COPY = Object.freeze({
+  brand: 'LockIn',
+  headline: 'One thing at a time.',
+  subtitle: 'Choose the time. Keep only what helps.',
+});
 
 const durationMinutesSchema = z.number().int().min(MIN_FOCUS_MINUTES).max(MAX_FOCUS_MINUTES);
 
@@ -65,9 +71,18 @@ export const presetSchema = z
     }
   });
 
+export const heroCopySchema = z
+  .object({
+    brand: z.string().trim().min(1).max(24),
+    headline: z.string().trim().min(1).max(80),
+    subtitle: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
 export const appSettingsSchema = z
   .object({
     activePresetId: entityIdSchema,
+    hero: heroCopySchema,
   })
   .strict();
 
@@ -138,4 +153,5 @@ export type Space = z.infer<typeof spaceSchema>;
 export type SpaceInput = z.input<typeof spaceInputSchema>;
 export type Preset = z.infer<typeof presetSchema>;
 export type PresetInput = z.infer<typeof presetInputSchema>;
+export type HeroCopy = z.infer<typeof heroCopySchema>;
 export type PersistedState = z.infer<typeof persistedStateSchema>;

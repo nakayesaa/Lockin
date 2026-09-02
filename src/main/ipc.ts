@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import {
   IPC_CHANNELS,
   entityRequestSchema,
+  heroCopyUpdateRequestSchema,
   presetCreateRequestSchema,
   presetUpdateRequestSchema,
   sessionResultSchema,
@@ -32,6 +33,11 @@ export function registerIpcHandlers(
 
   ipcMain.handle(IPC_CHANNELS.workspaceGet, async () =>
     workspaceResultSchema.parse(await store.getState()),
+  );
+  ipcMain.handle(IPC_CHANNELS.heroCopyUpdate, async (_event, input: unknown) =>
+    workspaceResultSchema.parse(
+      await store.updateHeroCopy(heroCopyUpdateRequestSchema.parse(input)),
+    ),
   );
   ipcMain.handle(IPC_CHANNELS.spaceCreate, async (_event, input: unknown) =>
     workspaceResultSchema.parse(await store.createSpace(spaceCreateRequestSchema.parse(input))),

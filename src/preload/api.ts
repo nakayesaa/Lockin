@@ -2,6 +2,7 @@ import type { IpcRenderer } from 'electron';
 import {
   IPC_CHANNELS,
   entityRequestSchema,
+  heroCopyUpdateRequestSchema,
   presetCreateRequestSchema,
   presetUpdateRequestSchema,
   sessionEventSchema,
@@ -18,7 +19,7 @@ import {
   type LockInApi,
   type SessionEvent,
 } from '../shared/contracts';
-import type { PresetInput, SpaceInput } from '../shared/data-model';
+import type { HeroCopy, PresetInput, SpaceInput } from '../shared/data-model';
 
 type Bridge = Pick<IpcRenderer, 'invoke' | 'on' | 'removeListener'>;
 
@@ -34,6 +35,8 @@ export function createLockInApi(bridge: Bridge): LockInApi {
 
   return Object.freeze({
     getWorkspace: () => invokeForWorkspace(IPC_CHANNELS.workspaceGet),
+    updateHeroCopy: async (input: HeroCopy) =>
+      invokeForWorkspace(IPC_CHANNELS.heroCopyUpdate, heroCopyUpdateRequestSchema.parse(input)),
     createSpace: async (input: SpaceInput) =>
       invokeForWorkspace(IPC_CHANNELS.spaceCreate, spaceCreateRequestSchema.parse(input)),
     updateSpace: async (id: string, input: SpaceInput) =>

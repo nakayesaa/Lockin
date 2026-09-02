@@ -17,6 +17,7 @@ describe('preload API', () => {
 
     expect(Object.keys(api)).toEqual([
       'getWorkspace',
+      'updateHeroCopy',
       'createSpace',
       'updateSpace',
       'deleteSpace',
@@ -109,6 +110,18 @@ describe('preload API', () => {
       IPC_CHANNELS.spaceCreate,
       expect.objectContaining({ name: 'Figma', url: 'figma.com' }),
     );
+
+    invoke.mockClear();
+    await expect(
+      api.updateHeroCopy({ brand: '', headline: 'Focus', subtitle: 'One step.' }),
+    ).rejects.toThrow();
+    expect(invoke).not.toHaveBeenCalled();
+    await api.updateHeroCopy({ brand: 'Flow', headline: 'Make it count.', subtitle: 'Begin.' });
+    expect(invoke).toHaveBeenCalledWith(IPC_CHANNELS.heroCopyUpdate, {
+      brand: 'Flow',
+      headline: 'Make it count.',
+      subtitle: 'Begin.',
+    });
   });
 
   it('subscribes to validated session events and removes the exact listener', () => {

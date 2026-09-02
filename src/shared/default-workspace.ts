@@ -1,8 +1,8 @@
-import type { PersistedState } from './data-model';
+import { DEFAULT_HERO_COPY, type PersistedState } from './data-model';
 
 export function createDefaultWorkspace(): PersistedState {
   return {
-    version: 1,
+    version: 2,
     spaces: [
       {
         id: 'leetcode',
@@ -43,6 +43,6 @@ export function createDefaultWorkspace(): PersistedState {
         spaceIds: ['leetcode', 'chatgpt', 'youtube'],
       },
     ],
-    settings: { activePresetId: 'default' },
+    settings: { activePresetId: 'default', hero: { ...DEFAULT_HERO_COPY } },
   };
 }

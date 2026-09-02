@@ -6,9 +6,15 @@ import { z } from 'zod';
 import { createDefaultWorkspace } from '../shared/default-workspace';
 import {
   CURRENT_DATA_VERSION,
+  DEFAULT_HERO_COPY,
+  entityIdSchema,
+  heroCopySchema,
   persistedStateSchema,
   presetInputSchema,
+  presetSchema,
   spaceInputSchema,
+  spaceSchema,
+  type HeroCopy,
   type PersistedState,
   type Preset,
   type PresetInput,
@@ -63,6 +69,15 @@ const legacyStateSchema = z
   })
   .strict();
 
+const versionOneStateSchema = z
+  .object({
+    version: z.literal(1),
+    spaces: z.array(spaceSchema).max(100),
+    presets: z.array(presetSchema).min(1).max(50),
+    settings: z.object({ activePresetId: entityIdSchema }).strict(),
+  })
+  .strict();
+
 function cloneState(state: PersistedState): PersistedState {
   return structuredClone(state);
 }
@@ -83,6 +98,16 @@ async function pathExists(filePath: string): Promise<boolean> {
 function migrateState(value: unknown): PersistedState {
   const version = z.object({ version: z.number().int() }).passthrough().parse(value).version;
   if (version === CURRENT_DATA_VERSION) return persistedStateSchema.parse(value);
+
+  if (version === 1) {
+    const legacy = versionOneStateSchema.parse(value);
+    return persistedStateSchema.parse({
+      ...legacy,
+      version: CURRENT_DATA_VERSION,
+      settings: { ...legacy.settings, hero: DEFAULT_HERO_COPY },
+    });
+  }
+
   if (version !== 0) throw new Error(`Unsupported workspace data version: ${version}`);
 
   const legacy = legacyStateSchema.parse(value);
@@ -101,7 +126,7 @@ function migrateState(value: unknown): PersistedState {
       };
     }),
     presets: legacy.presets,
-    settings: { activePresetId: legacy.activePresetId },
+    settings: { activePresetId: legacy.activePresetId, hero: DEFAULT_HERO_COPY },
   });
 }
 
@@ -279,6 +304,13 @@ export class WorkspaceStore {
     return this.mutate((state) => {
       if (!state.presets.some((preset) => preset.id === id)) throw new Error('Preset not found');
       state.settings.activePresetId = id;
+      return null;
+    });
+  }
+
+  async updateHeroCopy(input: HeroCopy): Promise<WorkspaceResult> {
+    return this.mutate((state) => {
+      state.settings.hero = heroCopySchema.parse(input);
       return null;
     });
   }

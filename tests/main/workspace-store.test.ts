@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceStore } from '../../src/main/workspace-store';
+import { createDefaultWorkspace } from '../../src/shared/default-workspace';
 
 describe('WorkspaceStore', () => {
   let directory: string;
@@ -67,6 +68,45 @@ describe('WorkspaceStore', () => {
     ]);
   });
 
+  it('persists personalized setup copy', async () => {
+    const store = new WorkspaceStore(filePath);
+    await store.initialize();
+    const updated = await store.updateHeroCopy({
+      brand: 'My Studio',
+      headline: 'Stay with the work.',
+      subtitle: 'Everything else can wait.',
+    });
+    const restarted = new WorkspaceStore(filePath);
+
+    expect((await restarted.initialize()).state.settings.hero).toEqual(updated.state.settings.hero);
+  });
+
+  it('migrates version one data without losing existing workspace content', async () => {
+    const current = createDefaultWorkspace();
+    const legacy = {
+      ...current,
+      version: 1,
+      settings: { activePresetId: current.settings.activePresetId },
+    };
+    await writeFile(filePath, JSON.stringify(legacy));
+
+    const result = await new WorkspaceStore(filePath).initialize();
+
+    expect(result.state).toMatchObject({
+      version: 2,
+      settings: {
+        activePresetId: 'default',
+        hero: {
+          brand: 'LockIn',
+          headline: 'One thing at a time.',
+          subtitle: 'Choose the time. Keep only what helps.',
+        },
+      },
+    });
+    expect(result.state.spaces).toEqual(current.spaces);
+    expect(result.state.presets).toEqual(current.presets);
+  });
+
   it('warns about overlapping rules and protects the last preset space', async () => {
     const store = new WorkspaceStore(filePath, { createId: () => 'leetcode-subdomain' });
     await store.initialize();
@@ -127,11 +167,18 @@ describe('WorkspaceStore', () => {
     const store = new WorkspaceStore(filePath);
     const result = await store.initialize();
     expect(result.state).toMatchObject({
-      version: 1,
-      settings: { activePresetId: 'work' },
+      version: 2,
+      settings: {
+        activePresetId: 'work',
+        hero: {
+          brand: 'LockIn',
+          headline: 'One thing at a time.',
+          subtitle: 'Choose the time. Keep only what helps.',
+        },
+      },
       spaces: [{ hostname: 'docs.example.com', startUrl: 'https://docs.example.com/' }],
     });
-    expect(JSON.parse(await readFile(filePath, 'utf8'))).toMatchObject({ version: 1 });
+    expect(JSON.parse(await readFile(filePath, 'utf8'))).toMatchObject({ version: 2 });
   });
 
   it('quarantines corrupt data and restores usable defaults', async () => {

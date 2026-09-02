@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import {
   entityIdSchema,
+  heroCopySchema,
   persistedStateSchema,
   presetInputSchema,
   spaceInputSchema,
+  type HeroCopy,
   type PersistedState,
   type PresetInput,
   type SpaceInput,
@@ -13,6 +15,7 @@ import { spotifyPlaybackSchema, type SpotifyPlayback } from './spotify-model';
 
 export const IPC_CHANNELS = {
   workspaceGet: 'lockin:workspace:get',
+  heroCopyUpdate: 'lockin:hero-copy:update',
   spaceCreate: 'lockin:space:create',
   spaceUpdate: 'lockin:space:update',
   spaceDelete: 'lockin:space:delete',
@@ -48,6 +51,7 @@ export const workspaceResultSchema = z
   .strict();
 
 export const entityRequestSchema = z.object({ id: entityIdSchema }).strict();
+export const heroCopyUpdateRequestSchema = heroCopySchema;
 export const spaceCreateRequestSchema = spaceInputSchema;
 export const spaceUpdateRequestSchema = z
   .object({ id: entityIdSchema, input: spaceInputSchema })
@@ -106,6 +110,7 @@ export type SessionEvent = z.infer<typeof sessionEventSchema>;
 
 export interface LockInApi {
   getWorkspace(): Promise<WorkspaceResult>;
+  updateHeroCopy(input: HeroCopy): Promise<WorkspaceResult>;
   createSpace(input: SpaceInput): Promise<WorkspaceResult>;
   updateSpace(id: string, input: SpaceInput): Promise<WorkspaceResult>;
   deleteSpace(id: string): Promise<WorkspaceResult>;

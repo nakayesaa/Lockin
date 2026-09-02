@@ -18,7 +18,7 @@ describe('shared IPC contracts', () => {
   it('accepts a validated workspace response', () => {
     expect(
       workspaceResultSchema.parse({ state: createDefaultWorkspace(), notice: null }).state.version,
-    ).toBe(1);
+    ).toBe(2);
   });
 
   it('rejects malformed entity and mutation payloads', () => {
