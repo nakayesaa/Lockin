@@ -10,6 +10,7 @@ import { createSiteViewOptions, SITE_PARTITION } from './site-view-options';
 const CONTROL_BAR_HEIGHT = 64;
 const CONTROL_HOTSPOT_SIZE = 96;
 const DEADLINE_CHECK_INTERVAL_MS = 1_000;
+const FOCUS_RECLAIM_DELAY_MS = 150;
 const configuredSessions = new WeakSet<object>();
 
 interface FocusRuntimeOptions {
@@ -27,6 +28,7 @@ export class FocusRuntime {
   private activeSession: SessionRecord | null = null;
   private monotonicDeadline = 0;
   private completionTimer: ReturnType<typeof setTimeout> | null = null;
+  private focusRestoreTimer: ReturnType<typeof setTimeout> | null = null;
   private siteView: WebContentsView | null = null;
   private siteControlsVisible = false;
   private loadSequence = 0;
@@ -47,6 +49,13 @@ export class FocusRuntime {
   private readonly restoreFocusWindow = () => {
     if (this.activeSession) this.enforceFocusWindow();
   };
+  private readonly scheduleFocusRestore = () => {
+    if (!this.activeSession || this.focusRestoreTimer !== null) return;
+    this.focusRestoreTimer = setTimeout(() => {
+      this.focusRestoreTimer = null;
+      if (this.activeSession && !this.window.isFocused()) this.enforceFocusWindow();
+    }, FOCUS_RECLAIM_DELAY_MS);
+  };
   private readonly resize: () => void;
 
   constructor(
@@ -66,6 +75,7 @@ export class FocusRuntime {
 
     this.resize = () => this.layoutActiveView();
     window.webContents.on('before-input-event', this.blockFocusShortcut);
+    window.on('blur', this.scheduleFocusRestore);
     window.on('close', this.blockWindowClose);
     window.on('leave-full-screen', this.restoreFocusWindow);
     window.on('minimize', this.restoreFocusWindow);
@@ -103,14 +113,17 @@ export class FocusRuntime {
     this.window.setClosable(false);
     this.window.setMinimizable(false);
     this.enforceFocusWindow();
+    this.window.setAlwaysOnTop(true);
   }
 
   exitFocus(): void {
     this.clearCompletionTimer();
+    this.clearFocusRestoreTimer();
     this.activeSession = null;
     this.monotonicDeadline = 0;
     this.window.setClosable(true);
     this.window.setMinimizable(true);
+    this.window.setAlwaysOnTop(false);
     if (this.window.isFullScreen()) this.window.setFullScreen(false);
   }
 
@@ -139,9 +152,11 @@ export class FocusRuntime {
 
   destroy(): void {
     this.clearCompletionTimer();
+    this.clearFocusRestoreTimer();
     this.activeSession = null;
     this.monotonicDeadline = 0;
     this.window.webContents.off('before-input-event', this.blockFocusShortcut);
+    this.window.off('blur', this.scheduleFocusRestore);
     this.window.off('close', this.blockWindowClose);
     this.window.off('leave-full-screen', this.restoreFocusWindow);
     this.window.off('minimize', this.restoreFocusWindow);
@@ -199,6 +214,11 @@ export class FocusRuntime {
   private clearCompletionTimer(): void {
     if (this.completionTimer !== null) clearTimeout(this.completionTimer);
     this.completionTimer = null;
+  }
+
+  private clearFocusRestoreTimer(): void {
+    if (this.focusRestoreTimer !== null) clearTimeout(this.focusRestoreTimer);
+    this.focusRestoreTimer = null;
   }
 
   private enforceFocusWindow(): void {

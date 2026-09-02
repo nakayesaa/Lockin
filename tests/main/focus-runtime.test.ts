@@ -124,11 +124,13 @@ function setup() {
     getContentSize: () => [1200, 800],
     isDestroyed: () => false,
     isFullScreen: () => fullScreen,
+    isFocused: vi.fn(() => true),
     setFullScreen: vi.fn((value: boolean) => {
       fullScreen = value;
     }),
     setClosable: vi.fn(),
     setMinimizable: vi.fn(),
+    setAlwaysOnTop: vi.fn(),
     isMinimized: vi.fn(() => false),
     restore: vi.fn(),
     show: vi.fn(),
@@ -245,6 +247,7 @@ describe('FocusRuntime website lifecycle', () => {
     expect(window.setFullScreen).toHaveBeenCalledWith(true);
     expect(window.setClosable).toHaveBeenCalledWith(false);
     expect(window.setMinimizable).toHaveBeenCalledWith(false);
+    expect(window.setAlwaysOnTop).toHaveBeenCalledWith(true);
     expect(window.focus).toHaveBeenCalledOnce();
     expect(window.webContents.focus).toHaveBeenCalledTimes(2);
 
@@ -275,6 +278,13 @@ describe('FocusRuntime website lifecycle', () => {
     window.emit('leave-full-screen');
     expect(window.setFullScreen).toHaveBeenLastCalledWith(true);
 
+    window.isFocused.mockReturnValueOnce(false);
+    window.emit('blur');
+    await vi.advanceTimersByTimeAsync(149);
+    expect(window.focus).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(window.focus).toHaveBeenCalledTimes(4);
+
     await vi.advanceTimersByTimeAsync(1_000);
     expect(sessions.getSession).toHaveBeenCalledOnce();
     expect(sessions.complete).toHaveBeenCalledWith(session.id);
@@ -282,6 +292,7 @@ describe('FocusRuntime website lifecycle', () => {
     expect(window.setFullScreen).toHaveBeenLastCalledWith(false);
     expect(window.setClosable).toHaveBeenLastCalledWith(true);
     expect(window.setMinimizable).toHaveBeenLastCalledWith(true);
+    expect(window.setAlwaysOnTop).toHaveBeenLastCalledWith(false);
     expect(onSessionCompleted).toHaveBeenCalledOnce();
 
     const allowedClose = { preventDefault: vi.fn() };
