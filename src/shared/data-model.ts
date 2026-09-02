@@ -6,7 +6,7 @@ export const CURRENT_DATA_VERSION = 2 as const;
 
 export const DEFAULT_HERO_COPY = Object.freeze({
   brand: 'LockIn',
-  headline: 'One thing at a time.',
+  headline: 'One thing\nat a time.',
   subtitle: 'Choose the time. Keep only what helps.',
 });
 

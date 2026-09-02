@@ -98,7 +98,7 @@ describe('WorkspaceStore', () => {
         activePresetId: 'default',
         hero: {
           brand: 'LockIn',
-          headline: 'One thing at a time.',
+          headline: 'One thing\nat a time.',
           subtitle: 'Choose the time. Keep only what helps.',
         },
       },
@@ -172,7 +172,7 @@ describe('WorkspaceStore', () => {
         activePresetId: 'work',
         hero: {
           brand: 'LockIn',
-          headline: 'One thing at a time.',
+          headline: 'One thing\nat a time.',
           subtitle: 'Choose the time. Keep only what helps.',
         },
       },

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, RefObject } from 'react';
-import type { Space } from '../../shared/data-model';
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
+import type { HeroCopy, Space } from '../../shared/data-model';
 import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES } from '../../shared/focus-limits';
 import { focusedSessionSeconds } from '../../shared/session-time';
 import wallpaperUrl from './assets/polo-wallpaper.png';
@@ -180,6 +180,95 @@ function SetupCard({
   );
 }
 
+function EditableHero({
+  copy,
+  disabled,
+  onChange,
+}: {
+  copy: HeroCopy;
+  disabled: boolean;
+  onChange: (copy: HeroCopy) => Promise<boolean>;
+}) {
+  const commit = (field: keyof HeroCopy, element: HTMLElement) => {
+    const original = copy[field];
+    const normalized = (element.innerText || element.textContent || '')
+      .trim()
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{2,}/g, '\n');
+    if (!normalized) {
+      element.textContent = original;
+      return;
+    }
+    element.textContent = normalized;
+    if (normalized === original) return;
+    void onChange({ ...copy, [field]: normalized }).then((saved) => {
+      if (!saved) element.textContent = original;
+    });
+  };
+
+  const handleKey = (
+    event: ReactKeyboardEvent<HTMLElement>,
+    field: keyof HeroCopy,
+    multiline = false,
+  ) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.currentTarget.textContent = copy[field];
+      event.currentTarget.blur();
+    }
+    if (event.key === 'Enter' && (!multiline || !event.shiftKey)) {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
+  };
+
+  const editable = !disabled;
+  return (
+    <div className="hero-copy">
+      <p
+        key={`brand-${copy.brand}`}
+        className="brand-kicker hero-copy__editable"
+        aria-label="Brand text"
+        contentEditable={editable}
+        suppressContentEditableWarning
+        spellCheck={false}
+        tabIndex={editable ? 0 : -1}
+        onBlur={(event) => commit('brand', event.currentTarget)}
+        onKeyDown={(event) => handleKey(event, 'brand')}
+      >
+        {copy.brand}
+      </p>
+      <h1
+        key={`headline-${copy.headline}`}
+        id="focus-heading"
+        className="hero-copy__editable"
+        aria-label={copy.headline.replace(/\s+/g, ' ')}
+        contentEditable={editable}
+        suppressContentEditableWarning
+        spellCheck={false}
+        tabIndex={editable ? 0 : -1}
+        onBlur={(event) => commit('headline', event.currentTarget)}
+        onKeyDown={(event) => handleKey(event, 'headline', true)}
+      >
+        {copy.headline}
+      </h1>
+      <p
+        key={`subtitle-${copy.subtitle}`}
+        className="hero-copy__subtitle hero-copy__editable"
+        aria-label="Supporting text"
+        contentEditable={editable}
+        suppressContentEditableWarning
+        spellCheck={false}
+        tabIndex={editable ? 0 : -1}
+        onBlur={(event) => commit('subtitle', event.currentTarget)}
+        onKeyDown={(event) => handleKey(event, 'subtitle')}
+      >
+        {copy.subtitle}
+      </p>
+    </div>
+  );
+}
+
 function Workspace({
   space,
   remaining,
@@ -221,12 +310,20 @@ function Workspace({
         <div className="website-surface__ambient" aria-hidden="true" />
         {connected ? (
           <div
-            className="website-content website-runtime-state"
+            className={`website-content website-runtime-state ${loading ? 'is-loading' : ''}`}
             role={failed ? 'alert' : 'status'}
             aria-live="polite"
+            aria-label={loading ? `Opening ${space.name}` : undefined}
           >
-            {loading ? <span className="website-loader" aria-hidden="true" /> : null}
-            {failed ? (
+            {loading ? (
+              <div className="website-loader" aria-hidden="true">
+                <span className="website-loader__halo" />
+                <span className="website-loader__ring website-loader__ring--one" />
+                <span className="website-loader__ring website-loader__ring--two" />
+                <span className="website-loader__ring website-loader__ring--three" />
+                <span className="website-loader__core" />
+              </div>
+            ) : failed ? (
               <>
                 <span className={`preview-emblem preview-emblem--${tone}`} aria-hidden="true">
                   {space.symbol ?? '◌'}
@@ -243,13 +340,7 @@ function Workspace({
                   </button>
                 </div>
               </>
-            ) : (
-              <>
-                <p className="eyebrow">Secure workspace</p>
-                <h2>Opening {space.name}…</h2>
-                <p>The site will appear as soon as its private workspace is ready.</p>
-              </>
-            )}
+            ) : null}
           </div>
         ) : (
           <div className="website-content">
@@ -631,15 +722,11 @@ function LockInApp() {
               ) : null}
             </>
           ) : null}
-          <div className="hero-copy">
-            <p className="brand-kicker">LockIn</p>
-            <h1 id="focus-heading" aria-label="One thing at a time.">
-              One thing
-              <br />
-              at a time.
-            </h1>
-            <p>Choose the time. Keep only what helps.</p>
-          </div>
+          <EditableHero
+            copy={workspace.state.settings.hero}
+            disabled={workspace.loading || workspace.saving || focus.busy || isStarting}
+            onChange={workspace.updateHeroCopy}
+          />
           <SetupCard
             duration={duration}
             onDurationChange={(value) => void workspace.setDuration(value)}

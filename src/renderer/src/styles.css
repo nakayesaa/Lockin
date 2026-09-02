@@ -180,6 +180,7 @@ input:focus-visible {
 }
 
 .hero-copy {
+  width: min(680px, calc(100vw - 48px));
   margin-bottom: 22px;
   color: white;
   text-align: center;
@@ -194,17 +195,38 @@ input:focus-visible {
   text-transform: uppercase;
 }
 .hero-copy h1 {
-  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
   font-size: clamp(42px, 4.2vw, 64px);
   font-weight: 700;
   letter-spacing: -0.06em;
   line-height: 0.9;
+  white-space: pre-line;
 }
-.hero-copy > p:last-child {
+.hero-copy__subtitle {
   margin: 14px 0 0;
   font-size: 14px;
   font-weight: 460;
   opacity: 0.86;
+}
+.hero-copy__editable {
+  border-radius: 12px;
+  cursor: text;
+  outline: none;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+.hero-copy__editable[contenteditable='true']:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.08);
+}
+.hero-copy__editable[contenteditable='true']:focus {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 0 7px rgba(255, 255, 255, 0.1),
+    0 0 0 8px rgba(255, 255, 255, 0.26);
 }
 
 .setup-stack {
@@ -1386,14 +1408,61 @@ input:focus-visible {
   background: rgba(247, 251, 255, 0.74);
   backdrop-filter: blur(24px) saturate(140%);
 }
+.website-runtime-state.is-loading {
+  perspective: 800px;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(94, 169, 255, 0.12), transparent 24%),
+    rgba(247, 251, 255, 0.76);
+}
 .website-loader {
-  width: 34px;
-  height: 34px;
-  margin-bottom: 22px;
-  border: 2px solid rgba(8, 124, 255, 0.14);
-  border-top-color: #087cff;
+  position: relative;
+  width: 112px;
+  height: 112px;
+  transform-style: preserve-3d;
+  animation: site-loader-float 2.8s ease-in-out infinite;
+}
+.website-loader__halo,
+.website-loader__ring,
+.website-loader__core {
+  position: absolute;
   border-radius: 50%;
-  animation: site-loading 800ms linear infinite;
+}
+.website-loader__halo {
+  inset: 11px;
+  background: radial-gradient(circle, rgba(61, 143, 255, 0.2), transparent 68%);
+  filter: blur(12px);
+  animation: site-loader-breathe 2s ease-in-out infinite;
+}
+.website-loader__ring {
+  inset: 17px;
+  border: 1px solid rgba(66, 145, 239, 0.42);
+  border-top-color: rgba(255, 255, 255, 0.92);
+  border-right-color: rgba(69, 139, 242, 0.16);
+  box-shadow:
+    inset 0 0 16px rgba(91, 174, 255, 0.16),
+    0 0 14px rgba(49, 137, 238, 0.12);
+  transform-style: preserve-3d;
+}
+.website-loader__ring--one {
+  animation: site-loader-ring-one 2.2s linear infinite;
+}
+.website-loader__ring--two {
+  inset: 24px;
+  border-color: rgba(129, 99, 255, 0.38);
+  animation: site-loader-ring-two 1.8s linear infinite reverse;
+}
+.website-loader__ring--three {
+  inset: 31px;
+  border-color: rgba(255, 255, 255, 0.82);
+  animation: site-loader-ring-three 1.5s linear infinite;
+}
+.website-loader__core {
+  inset: 43px;
+  background: radial-gradient(circle at 34% 28%, #ffffff, #79c2ff 42%, #277ee8 76%);
+  box-shadow:
+    0 0 20px rgba(39, 126, 232, 0.48),
+    inset -3px -4px 7px rgba(11, 68, 151, 0.25);
+  animation: site-loader-core 1.6s ease-in-out infinite;
 }
 .website-runtime-actions {
   display: flex;
@@ -2154,9 +2223,59 @@ input:focus-visible {
   }
 }
 
-@keyframes site-loading {
+@keyframes site-loader-float {
+  0%,
+  100% {
+    transform: translateY(4px) rotateX(-4deg);
+  }
+  50% {
+    transform: translateY(-6px) rotateX(4deg);
+  }
+}
+@keyframes site-loader-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.88);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+@keyframes site-loader-ring-one {
+  from {
+    transform: rotateZ(0deg) rotateX(68deg);
+  }
   to {
-    transform: rotate(360deg);
+    transform: rotateZ(360deg) rotateX(68deg);
+  }
+}
+@keyframes site-loader-ring-two {
+  from {
+    transform: rotateZ(0deg) rotateY(66deg);
+  }
+  to {
+    transform: rotateZ(360deg) rotateY(66deg);
+  }
+}
+@keyframes site-loader-ring-three {
+  from {
+    transform: rotateZ(0deg) rotateX(58deg) rotateY(42deg);
+  }
+  to {
+    transform: rotateZ(360deg) rotateX(58deg) rotateY(42deg);
+  }
+}
+@keyframes site-loader-core {
+  0%,
+  100% {
+    filter: brightness(0.94);
+    transform: scale(0.88) translateZ(14px);
+  }
+  50% {
+    filter: brightness(1.12);
+    transform: scale(1.08) translateZ(24px);
   }
 }
 @keyframes completion-in {

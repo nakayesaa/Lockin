@@ -39,6 +39,35 @@ describe('LockIn product flow', () => {
     expect(screen.getByRole('button', { name: 'Start focus' })).toHaveTextContent('1 min');
   });
 
+  it('edits and persists each setup message inline', async () => {
+    const initial = createDefaultWorkspace();
+    const updated = structuredClone(initial);
+    updated.settings.hero.brand = 'Focus Room';
+    const updateHeroCopy = vi.fn().mockResolvedValue({ state: updated, notice: null });
+    Object.defineProperty(window, 'lockIn', {
+      configurable: true,
+      value: {
+        getWorkspace: vi.fn().mockResolvedValue({ state: initial, notice: null }),
+        updateHeroCopy,
+      },
+    });
+
+    render(<App />);
+    const brand = await screen.findByLabelText('Brand text');
+    brand.textContent = 'Focus Room';
+    fireEvent.blur(brand);
+
+    await waitFor(() =>
+      expect(updateHeroCopy).toHaveBeenCalledWith({
+        brand: 'Focus Room',
+        headline: 'One thing\nat a time.',
+        subtitle: 'Choose the time. Keep only what helps.',
+      }),
+    );
+    expect(screen.getByText('Focus Room')).toBeVisible();
+    expect(screen.getByLabelText('Supporting text')).toHaveAttribute('contenteditable', 'true');
+  });
+
   it('adds a crystal space to the dynamic dock', async () => {
     render(<App />);
 
@@ -206,7 +235,9 @@ describe('LockIn product flow', () => {
     render(<App />);
     expect(await screen.findByRole('button', { name: 'Open session controls' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Open ChatGPT' }));
-    expect(await screen.findByRole('heading', { name: 'Opening ChatGPT…' })).toBeVisible();
+    const loading = await screen.findByRole('status', { name: 'Opening ChatGPT' });
+    expect(loading.querySelector('.website-loader')).toBeVisible();
+    expect(screen.queryByText(/Opening ChatGPT/)).not.toBeInTheDocument();
     act(() =>
       emit?.({
         type: 'site-state-changed',
